@@ -1,4 +1,5 @@
 require "mock/ldap/version"
+require "mock/ldap/server"
 
 module Mock
   module Ldap
