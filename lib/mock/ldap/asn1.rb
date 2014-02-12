@@ -1,13 +1,12 @@
 require 'mock/ldap/asn1/io'
 
-
 module Mock
   module Ldap
-    module Asn
+    module Asn1
 
 
       def pp_pdu(pdu)
-        raise TypeError "Argument pdu is requested to be OpenSSL::ASN1::ASN1Data." unless pdu.is_a?(OpenSSL::ASN1::ASN1Data)
+        raise TypeError, "Argument pdu is requested to be OpenSSL::ASN1::ASN1Data." unless pdu.is_a?(OpenSSL::ASN1::ASN1Data)
         header = "<#{pdu.tag_class.to_s[0]},#{pdu.tag}>"
         if pdu.value.is_a?(OpenSSL::BN)
           data = pdu.value.to_i
@@ -19,7 +18,6 @@ module Mock
 
         "#{header}#{data}"
       end
-
 
       module_function :pp_pdu
     end

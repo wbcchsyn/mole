@@ -1,6 +1,9 @@
 require 'socket'
 require 'logger'
+require 'openssl'
+
 require 'mock/ldap/asn1'
+require 'mock/ldap/worker'
 
 module Mock
   module Ldap
@@ -24,13 +27,13 @@ module Mock
         end
 
         if args[:log]
-          @logger = Logger.new(args[:log])
+          @logger = Logger.ne(args[:log])
         else
           @logger = Logger.new($stdout)
         end
 
         if args[:level]
-          case args[:logger].to_s.upcase
+          case args[:level].to_s.upcase
           when 'DEBUG'
             @logger.level = Logger::DEBUG
           when 'INFO'
@@ -73,8 +76,20 @@ module Mock
           end
 
           loop do
-            pdu = OpenSSL::ASN1.decode(sock.fetch_ber)
-            puts(Mock::Ldap::Asn1.pp_pdu(pdu))
+            receive = OpenSSL::ASN1.decode(sock.fetch_ber)
+            @logger.debug(Asn1::pp_pdu(receive))
+
+            request, response = Mock::Ldap::Worker.handle(receive)
+
+            @logger.info("Receive #{request.protocol}.")
+            if response.result == :success
+              @logger.info("send #{response.diagnostic_message}")
+            else
+              @logger.warn("send #{response.diagnostic_message}")
+            end
+
+            @logger.debug(Asn1::pp_pdu(response.to_pdu))
+            sock.write(response.to_pdu.to_der)
           end
 
         rescue Errno::EBADF
@@ -84,7 +99,7 @@ module Mock
         rescue
           @logger.error($!.message)
           $!.backtrace.each do |line|
-            $logger.error(line)
+            @logger.error(line)
           end
 
         ensure
@@ -96,8 +111,10 @@ module Mock
         @gsock.close
       end
 
+      def clear
+        @base = nil
+      end
+
     end
-
-
   end
 end
