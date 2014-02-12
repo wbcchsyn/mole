@@ -1,6 +1,6 @@
 require 'socket'
 require 'logger'
-
+require 'mock/ldap/asn1'
 
 module Mock
   module Ldap
@@ -68,11 +68,16 @@ module Mock
 
         begin
           sock = @gsock.accept
-          while char = sock.read(1)
-            puts char.bytes[0]
+          class << sock
+            include Mock::Ldap::Asn1::IO
           end
 
-        rescue Errno::BEADF
+          loop do
+            pdu = OpenSSL::ASN1.decode(sock.fetch_ber)
+            puts(Mock::Ldap::Asn1.pp_pdu(pdu))
+          end
+
+        rescue Errno::EBADF
           # When @gsock is closed while running
           # Do nothing
 
