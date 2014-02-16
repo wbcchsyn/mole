@@ -18,17 +18,17 @@ describe "Net::LDAP#search" do
 
     @ldap.open do |ldap|
       ldap.add(dn: 'dc=example,dc=com',
-               attributes: {dc: "example", objectclass: "organizationalUnit"})
+               attributes: {dc: "example", objectClass: "organizationalUnit"})
       ldap.add(dn: 'ou=Group,dc=example,dc=com',
-               attributes: {ou: "Group", objectclass: "organizationalUnit"})
+               attributes: {ou: "Group", objectClass: "organizationalUnit"})
       ldap.add(dn: 'gid=userf,ou=Group,dc=example,dc=com',
-               attributes: {gid: "users", objectclass: "posixGroup", gidNumber: '10001'})
+               attributes: {gid: "users", objectClass: "posixGroup", gidNumber: '10001'})
       ldap.add(dn: 'ou=People,dc=example,dc=com',
-               attributes: {ou: "People", objectclass: "organizationalUnit"})
+               attributes: {ou: "People", objectClass: "organizationalUnit"})
       ldap.add(dn: 'uid=sato,ou=People,dc=example,dc=com',
-               attributes: {uid: "sato", objectclass: ['posixAccount', 'inetOrgPerson'], uidNumber: '10001', gidNumber: '10001'})
+               attributes: {uid: "sato", objectClass: ['posixAccount', 'inetOrgPerson'], uidNumber: '10001', gidNumber: '10001'})
       ldap.add(dn: 'uid=suzuki,ou=People,dc=example,dc=com',
-               attributes: {uid: "suzuki", objectclass: ['posixAccount', 'inetOrgPerson'], uidNumber: '10002', gidNumber: '10002'})
+               attributes: {uid: "suzuki", objectClass: ['posixAccount', 'inetOrgPerson'], uidNumber: '10002', gidNumber: '10002'})
     end
   end
 

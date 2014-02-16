@@ -191,4 +191,16 @@ describe "Mock::Ldap::Worker::Response::Entry#search" do
     }.should raise_error(@response::NoSuchObjectError)
     @response::Entry.search('ou=People,dc=example,dc=com', scope, [], [:not, [:present, 'ou']]).length.should == 2
   end
+
+  it "should ignore case to filter." do
+    scope = :whole_subtree
+    filter = [:present, 'objectclass']
+    @response::Entry.search('dc=example,dc=com', scope, [], filter).length.should == 6
+  end
+
+  it "should ignore case to matching dn." do
+    scope = :whole_subtree
+    filter = [:present, 'objectclass']
+    @response::Entry.search('dc=Example,dc=Com', scope, [], filter).length.should == 6
+  end
 end

@@ -9,8 +9,59 @@ module Mock
         class Entry
 
           class Attributes < Hash
+
+            def self.[](attributes)
+              ret = new
+
+              attributes.each do |attr|
+                unless attr.length == 2
+                  raise ArgumentError, "invalid number of elements. (#{attr.length} for 2)"
+                end
+                type = attr[0]
+                vals = attr[1]
+
+                ret[type] = vals
+              end
+
+              ret
+            end
+
+            private :initialize
+
             def select(filter)
               send(*filter)
+            end
+
+            # ignore case of key
+            def has_key?(key)
+              return true if super
+
+              keys.any? do |k|
+                k =~ /^#{key}$/i
+              end
+            end
+
+            # ignore case of key
+            def [](key)
+              _val = super
+              return _val if _val
+
+              each_pair do |k, v|
+                return v if k =~ /^#{key}$/i
+              end
+              nil
+            end
+
+            # ignore case of key
+            def []=(key, value)
+              keys.each do |k|
+                if k =~ /^#{key}$/i
+                  delete(k)
+                  break
+                end
+              end
+
+              super
             end
 
             private
@@ -34,7 +85,12 @@ module Mock
             def equality_match(attribute)
               type = attribute[0]
               value = attribute[1]
-              has_key?(type) and self[type].include?(value)
+
+              return false unless has_key?(type)
+
+              self[type].any? do |v|
+                v =~ /^#{value}$/i
+              end
             end
 
             def substrings(substring)
@@ -47,11 +103,11 @@ module Mock
                 return false unless has_key?(type)
                 case position
                 when :initial
-                  self[type].any? do |v| v =~ /^#{value}/ end
+                  self[type].any? do |v| v =~ /^#{value}/i end
                 when :any
-                  self[type].any? do |v| v =~ /#{value}/ end
+                  self[type].any? do |v| v =~ /#{value}/i end
                 when :final
-                  self[type].any? do |v| v =~ /#{value}$/ end
+                  self[type].any? do |v| v =~ /#{value}$/i end
                 end
               }.all?
             end
@@ -63,7 +119,7 @@ module Mock
               return false unless has_key?(type)
 
               self[type].any? do |v|
-                v >= value
+                v.downcase >= value.downcase
               end
             end
 
@@ -74,7 +130,7 @@ module Mock
               return false unless has_key?(type)
 
               self[type].any? do |v|
-                v <= value
+                v.downcase <= value.downcase
               end
             end
 
@@ -160,12 +216,12 @@ module Mock
           end
 
           def search(dn, scope, attributes, filter)
-            if dn == @dn
+            if dn =~ /^#{@dn}$/i
               relative_dn = []
-            elsif @dn.end_with?(",#{dn}")
+            elsif @dn =~ /,#{dn}$/i
               relative_dn = []
-            elsif dn.end_with?(",#{@dn}")
-              relative_dn = dn.sub(/,#{@dn}$/, '').split(',')
+            elsif dn =~ /,#{@dn}$/i
+              relative_dn = dn.sub(/,#{@dn}$/i, '').split(',')
             else
               raise NoSuchObjectError, "#{dn} doesn't match to basedn."
             end
