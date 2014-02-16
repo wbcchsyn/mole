@@ -2,6 +2,7 @@ require 'openssl'
 
 require 'mock/ldap/worker/request/error'
 require 'mock/ldap/worker/tag'
+require 'mock/ldap/worker/request/common_parser'
 
 module Mock
   module Ldap
@@ -37,6 +38,9 @@ module Mock
             @entry = @operation.value[0].value
 
             # TODO Parse attributes
+            @attributes = @operation.value[1].value.map do |attribute|
+              Request::parse_attribute(attribute)
+            end
           end
 
         end

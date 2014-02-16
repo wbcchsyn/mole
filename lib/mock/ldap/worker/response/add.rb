@@ -14,7 +14,7 @@ module Mock
             @protocol = :AddResponse
             @message_id = request.message_id
             @matched_dn = request.entry
-            Entry.add(request.entry)
+            Entry.add(request.entry, request.attributes)
             @result = :success
             @diagnostic_message = "Succeeded to add #{request.entry}."
           rescue Error
