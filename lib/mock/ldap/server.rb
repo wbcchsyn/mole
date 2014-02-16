@@ -112,7 +112,7 @@ module Mock
       end
 
       def clear
-        @base = nil
+        Worker.clear
       end
 
     end

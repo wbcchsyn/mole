@@ -15,12 +15,20 @@ module Mock
           request = Request::Bind.new(message_id, request_body)
           response = Response::Bind.new(request)
           [request, response]
+        when Tag::Application[:AddRequest]
+          request = Request::Add.new(message_id, request_body)
+          response = Response::Add.new(request)
+          [request, response]
         else
           raise RuntimeError, "Receive unknown request tag."
         end
       end
 
-      module_function :handle
+      def clear
+        Response::Entry.clear
+      end
+
+      module_function :handle, :clear
 
     end
   end
