@@ -22,7 +22,7 @@ module Mock
 
           private
 
-          # Parse BindRequest. See RFC4511 Section 4.7
+          # Parse AddRequest. See RFC4511 Section 4.7
           def parse_request
             unless @operation.value.is_a?(Array)
               raise BerIdenitfierError, "AddRequest is requested to be Constructed ber."

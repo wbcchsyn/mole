@@ -88,8 +88,17 @@ module Mock
               @logger.warn("send #{response.diagnostic_message}")
             end
 
-            @logger.debug(Asn1::pp_pdu(response.to_pdu))
-            sock.write(response.to_pdu.to_der)
+            pdu = response.to_pdu
+
+            if pdu.is_a?(Array)
+              pdu.each do |p|
+                @logger.debug(Asn1::pp_pdu(p))
+                sock.write(p.to_der)
+              end
+            else
+              @logger.debug(Asn1::pp_pdu(pdu))
+              sock.write(pdu.to_der)
+            end
           end
 
         rescue Errno::EBADF

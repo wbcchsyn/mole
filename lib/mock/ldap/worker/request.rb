@@ -3,6 +3,7 @@ require 'openssl'
 require 'mock/ldap/worker/request/error'
 require 'mock/ldap/worker/request/bind'
 require 'mock/ldap/worker/request/add'
+require 'mock/ldap/worker/request/search'
 
 module Mock
   module Ldap

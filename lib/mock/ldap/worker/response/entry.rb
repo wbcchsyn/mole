@@ -9,6 +9,108 @@ module Mock
         class Entry
 
           class Attributes < Hash
+            def select(filter)
+              send(*filter)
+            end
+
+            private
+
+            def and(filters)
+              filters.map { |filter|
+                select(filter)
+              }.all?
+            end
+
+            def or(filters)
+              filters.map { |filter|
+                select(filter)
+              }.any?
+            end
+
+            def not(filter)
+              not select(filter)
+            end
+
+            def equality_match(attribute)
+              type = attribute[0]
+              value = attribute[1]
+              has_key?(type) and self[type].include?(value)
+            end
+
+            def substrings(substring)
+              type = substring[0]
+
+              substring[1].map { |sub|
+                position = sub[0]
+                value = sub[1]
+
+                return false unless has_key?(type)
+                case position
+                when :initial
+                  self[type].any? do |v| v =~ /^#{value}/ end
+                when :any
+                  self[type].any? do |v| v =~ /#{value}/ end
+                when :final
+                  self[type].any? do |v| v =~ /#{value}$/ end
+                end
+              }.all?
+            end
+
+            def greater_or_equal(attribute)
+              type = attribute[0]
+              value = attribute[1]
+
+              return false unless has_key?(type)
+
+              self[type].any? do |v|
+                v >= value
+              end
+            end
+
+            def less_or_equal(attribute)
+              type = attribute[0]
+              value = attribute[1]
+
+              return false unless has_key?(type)
+
+              self[type].any? do |v|
+                v <= value
+              end
+            end
+
+            def present(type)
+              has_key?(type)
+            end
+
+            def approx_match(attribute)
+              # There is no self approximate matching rule,
+              # so behave as equality mathcing according to RFC4511 Section 4.5.1.7.6
+              equality_match(attribute)
+            end
+
+            def extensible_match(attribute)
+              matching_rule = attribute[0]
+              type = attribute[1]
+              match_value = attribute[2]
+              dn_attributes = attribute[3] || false
+
+              if dn_attributes
+                # TODO Implement extensible_match when dn_attribute is True
+                raise RuntimeError, "extensibleMatch filter rule with dn attributes is not implemented yet."
+              end
+
+              if matching_rule and type
+                select([matching_rule, [type, match_value]])
+              elsif (not matching_rule) and type
+                equality_match([type, match_value])
+              elsif matching_rule and (not type)
+                keys.map { |t|
+                  select([matching_rule, [t, match_value]])
+                }.any?
+              else
+                raise RuntimeError, "Neither mathingRule nor type is not specified in extensibleMatch filter."
+              end
+            end
           end
 
           @@base = nil
@@ -19,6 +121,8 @@ module Mock
             @attributes = Attributes[attributes]
             @children = {}
           end
+
+          attr_reader :dn, :attributes
 
           def self.clear
             @@mutex.synchronize {
@@ -46,6 +150,29 @@ module Mock
             iter_add(relative_dn, attributes)
           end
 
+          def self.search(dn, scope, attributes, filter)
+            @@mutex.synchronize {
+              raise NoSuchObjectError, "Basedn is not added." unless @@base
+              ret = @@base.search(dn, scope, attributes, filter)
+              raise NoSuchObjectError, 'No entry is hit.' if ret.empty?
+              ret
+            }
+          end
+
+          def search(dn, scope, attributes, filter)
+            if dn == @dn
+              relative_dn = []
+            elsif @dn.end_with?(",#{dn}")
+              relative_dn = []
+            elsif dn.end_with?(",#{@dn}")
+              relative_dn = dn.sub(/,#{@dn}$/, '').split(',')
+            else
+              raise NoSuchObjectError, "#{dn} doesn't match to basedn."
+            end
+
+            iter_search(relative_dn, scope, attributes, filter)
+          end
+
           protected
 
           def iter_add(relative_dn, attributes)
@@ -59,6 +186,41 @@ module Mock
               raise UnwillingToPerformError, "dn #{next_dn},#{@dn} doesn't exist." unless @children.has_key?(next_dn)
               @children[next_dn].iter_add(relative_dn, attributes)
             end
+          end
+
+          def iter_search(relative_dn, scope, attributes, filter)
+            if relative_dn.empty?
+              init = @attributes.select(filter) ? [Entry.new(@dn, select_attributes(attributes))] : []
+
+              case scope
+              when :base_object
+                init
+              when :single_level
+                @children.values + init
+              when :whole_subtree
+                @children.values.reduce(init) do |acc, child|
+                  acc + child.iter_search(relative_dn, scope, attributes, filter)
+                end
+              end
+            else
+              next_dn = relative_dn.pop
+              if @children.has_key?(next_dn)
+                @children[next_dn].iter_search(relative_dn, scope, attributes, filter)
+              else
+                raise NoSuchObjectError, "No entry is found."
+              end
+            end
+          end
+
+
+          private
+
+          def select_attributes(attributes)
+            ret = {}
+            attributes.each do |type|
+              ret[type] = @attributes[type] if @attributes.has_key?(type)
+            end
+            ret
           end
         end
 

@@ -36,6 +36,40 @@ module Mock
           },
         }
 
+        # See RFC4511 Section 4.5.1
+        Scope = {
+          :base_object => 0,
+          :single_level => 1,
+          :whole_subtree => 2,
+        }
+
+        # See RFC4511 Section 4.5.1
+        DerefAliases = {
+          :never_deref_aliases => 0,
+          :deref_in_searching => 1,
+          :deref_finding_base_obj => 2,
+          :deref_always => 3,
+        }
+
+        SubstringType = {
+          :initial => 0,
+          :any => 1,
+          :final => 2,
+        }
+
+        FilterType = {
+          :and => 0,
+          :or => 1,
+          :not => 2,
+          :equality_match => 3,
+          :substrings => 4,
+          :greater_or_equal => 5,
+          :less_or_equal => 6,
+          :present => 7,
+          :approx_match => 8,
+          :extensible_match => 9,
+        }
+
       end
     end
   end

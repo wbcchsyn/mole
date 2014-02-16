@@ -30,6 +30,20 @@ module Mock
           end
         end
 
+        class NoSuchObjectError < Error
+          @@code = :noSuchObject
+          def code
+            @@code
+          end
+        end
+
+        class ProtocolError < Error
+          @@code = :proocolError
+          def code
+            @@code
+          end
+        end
+
       end
     end
   end
