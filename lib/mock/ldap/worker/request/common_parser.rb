@@ -7,6 +7,20 @@ module Mock
     module Worker
       module Request
 
+        # See RFC4511 Section 4.1.3
+        def parse_ldap_dn(pdu)
+          unless pdu.is_a?(OpenSSL::ASN1::OctetString)
+            raise BerIdentifierError, "LDAPDN is requested to be Universal OctetString."
+          end
+          ldap_dn = pdu.value
+
+          unless ldap_dn.empty? or ldap_dn =~ /^\w=\w(,\w=\w)*$/
+            raise InvalidDNSyntaxError, "#{ldap_dn} is not legal as LDAP DN."
+          end
+
+          ldap_dn
+        end
+
         # See RFC4511 Section 4.1.7
         def parse_attribute(pdu)
           type, vals = parse_partial_attribute(pdu)
@@ -48,7 +62,7 @@ module Mock
           [type, vals]
         end
 
-        module_function :parse_attribute, :parse_partial_attribute
+        module_function :parse_ldap_dn, :parse_attribute, :parse_partial_attribute
       end
     end
   end

@@ -23,6 +23,13 @@ module Mock
           end
         end
 
+        class InvalidDNSyntaxError < Error
+          @@code = :invalidDNSyntax
+          def code
+            @@code
+          end
+        end
+
       end
     end
   end

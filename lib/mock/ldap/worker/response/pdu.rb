@@ -1,4 +1,5 @@
 require 'mock/ldap/worker/response/result_code'
+require 'mock/ldap/worker/response/error'
 require 'mock/ldap/worker/tag'
 
 module Mock
@@ -17,6 +18,13 @@ module Mock
           attr_reader :protocol, :message_id, :result, :matched_dn, :diagnostic_message
 
           private
+
+          def sanitize_dn(dn)
+            unless dn.empty? or dn =~ /^\w+=\w+(,\w+=\w+)*$/
+              raise InvalidDNSyntaxError, "#{dn} is not legal as LDAP DN."
+            end
+            dn
+          end
 
           # See RFC4511 Section 4.1.1
           def create_ldap_message(message_id, protocol_op)
