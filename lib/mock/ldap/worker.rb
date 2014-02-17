@@ -23,6 +23,10 @@ module Mock
           request = Request::Search.new(message_id, request_body)
           response = Response::Search.new(request)
           [request, response]
+        when Tag::Application[:ModifyRequest]
+          request = Request::Modify.new(message_id, request_body)
+          response = Response::Modify.new(request)
+          [request, response]
         else
           raise RuntimeError, "Receive unknown request tag."
         end

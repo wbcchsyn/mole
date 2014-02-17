@@ -4,6 +4,7 @@ require 'mock/ldap/worker/request/error'
 require 'mock/ldap/worker/request/bind'
 require 'mock/ldap/worker/request/add'
 require 'mock/ldap/worker/request/search'
+require 'mock/ldap/worker/request/modify.rb'
 
 module Mock
   module Ldap

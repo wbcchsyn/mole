@@ -70,6 +70,11 @@ module Mock
           :extensible_match => 9,
         }
 
+        ChangesOperation = {
+          :add => 0,
+          :delete => 1,
+          :replace => 2,
+        }
       end
     end
   end

@@ -44,6 +44,13 @@ module Mock
           end
         end
 
+        class NoSuchAttributeError < Error
+          @@code = :noSuchAttribute
+          def code
+            @@code
+          end
+        end
+
       end
     end
   end

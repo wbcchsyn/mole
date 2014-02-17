@@ -21,17 +21,19 @@ module Mock
                 return v if k =~ /^#{key}$/i
               end
 
-              return nil
+              nil
             end
 
             def []=(key, value)
-              each_pair do |k, v|
-                if k =~ /^#{key}$/i
-                  delete(k)
-                  break
-                end
-              end
+              delete(key)
               super
+            end
+
+            def delete(key)
+              keys.each do |k|
+                return super if k =~ /^#{key}$/i
+              end
+              nil
             end
           end
 
@@ -173,7 +175,13 @@ module Mock
             @children = IgnoreCaseHash.new
           end
 
-          attr_reader :dn, :attributes
+          def initialize_copy(original)
+            @dn = original.dn.clone
+            @attributes = original.attributes.clone
+            @children = original.children.clone
+          end
+
+          attr_reader :dn, :attributes, :children
 
           def self.clear
             @@mutex.synchronize {
@@ -200,6 +208,52 @@ module Mock
             raise RuntimeError, 'Assertion' if relative_dn.include?(',')
             raise EntryAlreadyExistsError, "#{relative_dn},#{@dn} is already exists." if @children.has_key?(relative_dn)
             @children[relative_dn] = Entry.new("#{relative_dn},#{@dn}", attributes)
+          end
+
+          def self.modify(dn, operations)
+            @@mutex.synchronize {
+              raise NoSuchObjectError, "Basedn doesn't exist." unless @@base
+              target = @@base.search(dn, :base_object)[0].clone
+
+              operations.each do |operation|
+                target.modify(operation)
+              end
+
+              relative_dn, parent_dn = dn.split(',', 2)
+              parent = @@base.search(parent_dn, :base_object)[0]
+              parent.children[relative_dn] = target
+            }
+          end
+
+          def modify(operation)
+            command = operation[0]
+            type, values = operation[1]
+
+            case command
+            when :add
+              if @attributes.has_key?(type)
+                @attributes[type] = @attributes[type] + values
+              else
+                @attributes[type] = values
+              end
+            when :delete
+              raise NoSuchAttributeError, 'No such attribute is.' unless @attributes.has_key?(type)
+              if values.empty?
+                @attributes.delete(type)
+              else
+                values.each do |v|
+                  @attributes[type].delete(v) ||(raise NoSuchAttributeError, "Attribute #{type} doesn't have value #{v}.")
+                end
+                @attributes.delete(type) if @attributes[type].empty?
+              end
+
+            when :replace
+              if values.empty?
+                @attributes.delete(type)
+              else
+                @attributes[type] = values
+              end
+            end
           end
 
           def self.search(dn, scope, attributes, filter)
