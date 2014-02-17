@@ -8,7 +8,34 @@ module Mock
 
         class Entry
 
-          class Attributes < Hash
+          class IgnoreCaseHash < Hash
+
+            def has_key?(key)
+              keys.any? do |k|
+                k =~ /^#{key}$/i
+              end
+            end
+
+            def [](key)
+              each_pair do |k, v|
+                return v if k =~ /^#{key}$/i
+              end
+
+              return nil
+            end
+
+            def []=(key, value)
+              each_pair do |k, v|
+                if k =~ /^#{key}$/i
+                  delete(k)
+                  break
+                end
+              end
+              super
+            end
+          end
+
+          class Attributes < IgnoreCaseHash
 
             def self.[](attributes)
               ret = new
@@ -30,38 +57,6 @@ module Mock
 
             def select(filter)
               send(*filter)
-            end
-
-            # ignore case of key
-            def has_key?(key)
-              return true if super
-
-              keys.any? do |k|
-                k =~ /^#{key}$/i
-              end
-            end
-
-            # ignore case of key
-            def [](key)
-              _val = super
-              return _val if _val
-
-              each_pair do |k, v|
-                return v if k =~ /^#{key}$/i
-              end
-              nil
-            end
-
-            # ignore case of key
-            def []=(key, value)
-              keys.each do |k|
-                if k =~ /^#{key}$/i
-                  delete(k)
-                  break
-                end
-              end
-
-              super
             end
 
             private
@@ -175,7 +170,7 @@ module Mock
           def initialize(dn, attributes)
             @dn = dn
             @attributes = Attributes[attributes]
-            @children = {}
+            @children = IgnoreCaseHash.new
           end
 
           attr_reader :dn, :attributes
@@ -216,6 +211,31 @@ module Mock
           end
 
           def search(dn, scope, attributes, filter)
+            if dn =~ /^#{@dn}$/i or dn =~ /,#{@dn}$/i
+              # Search dn is equals or longer than base dn.
+              relative_dn = dn.sub(/,?#{@dn}$/i, '').split(',')
+              iter_search(relative_dn, scope, attributes, filter)
+            elsif @dn =~ /,#{dn}$/i
+              # Search dn is shorter than base dn.
+              case scope
+              when :base_object
+                raise NoSuchObjectError, "#{dn} doesn't match to basedn."
+              when :single_level
+                relative_dn = dn.sub(/,?#{@dn}$/i, '').split(',')
+                if relative_dn.length == 1
+                  scope = :base_object
+                  @children.values.reduce([]) do |acc, child|
+                    acc + iter_search(relative_dn, scope, attributes, filter)
+                  end
+                else
+                  raise NoSuchObjectError, "#{dn} doesn't match to basedn."
+                end
+              when :whole_subtree
+                relative_dn = []
+                iter_search(relative_dn, scope, attributes, filter)
+              end
+            end
+
             if dn =~ /^#{@dn}$/i
               relative_dn = []
             elsif @dn =~ /,#{dn}$/i

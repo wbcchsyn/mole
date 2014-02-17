@@ -51,6 +51,7 @@ describe "Mock::Ldap::Worker::Response::Entry#search" do
     scope = :whole_subtree
     attributes = []
     filter = [:present, 'objectClass']
+    @response::Entry.search('dc=com', scope, attributes, filter).length.should == 6
     @response::Entry.search('dc=example,dc=com', scope, attributes, filter).length.should == 6
     @response::Entry.search('ou=People,dc=example,dc=com', scope, attributes, filter).length.should == 3
     @response::Entry.search('uid=sato,ou=People,dc=example,dc=com', scope, attributes, filter).length.should == 1
@@ -72,6 +73,9 @@ describe "Mock::Ldap::Worker::Response::Entry#search" do
     scope = :base_object
     attributes = []
     filter = [:present, 'objectClass']
+    proc {
+      @response::Entry.search('dc=com', scope, attributes, filter)
+    }.should raise_error(@response::NoSuchObjectError)
     @response::Entry.search('dc=example,dc=com', scope, attributes, filter).length.should == 1
     @response::Entry.search('ou=People,dc=example,dc=com', scope, attributes, filter).length.should == 1
     @response::Entry.search('uid=sato,ou=People,dc=example,dc=com', scope, attributes, filter).length.should == 1
