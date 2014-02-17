@@ -184,112 +184,71 @@ module Mock
           def self.add(dn, attributes)
             @@mutex.synchronize {
               if @@base
-                @@base.add(dn, attributes)
+                raise EntryAlreadyExistsError, "#{dn} is already exists." if @@base.dn == dn
+
+                relative_dn, parent_dn = dn.split(',', 2)
+                @@base.search(parent_dn, :base_object)[0].add_child(relative_dn, attributes)
               else
                 @@base = new(dn, attributes)
               end
             }
+          rescue NoSuchObjectError
+            raise UnwillingToPerformError, "Parent dn is not found."
           end
 
-          def add(dn, attributes)
-            raise RuntimeError, "This method is called only by basedn." unless @@base.equal?(self)
-
-            raise EntryAlreadyExistsError, "dn #{dn} is already exists." if dn == @dn
-
-            raise UnwillingToPerformError, "dn is requested to be subtree of #{@dn}." unless dn.end_with?(",#{@dn}")
-            relative_dn = dn.sub(/,#{@dn}/, '').split(',')
-            iter_add(relative_dn, attributes)
+          def add_child(relative_dn, attributes)
+            raise RuntimeError, 'Assertion' if relative_dn.include?(',')
+            raise EntryAlreadyExistsError, "#{relative_dn},#{@dn} is already exists." if @children.has_key?(relative_dn)
+            @children[relative_dn] = Entry.new("#{relative_dn},#{@dn}", attributes)
           end
 
           def self.search(dn, scope, attributes, filter)
             @@mutex.synchronize {
-              raise NoSuchObjectError, "Basedn is not added." unless @@base
-              ret = @@base.search(dn, scope, attributes, filter)
+              raise NoSuchObjectError, "Basedn doesn't exist." unless @@base
+              ret = @@base.search(dn, scope).select { |entry|
+                entry.attributes.select(filter)
+              }.map { |entry|
+                Entry.new(dn, entry.select_attributes(attributes))
+              }
               raise NoSuchObjectError, 'No entry is hit.' if ret.empty?
               ret
             }
           end
 
-          def search(dn, scope, attributes, filter)
+          def search(dn, scope)
             if dn =~ /^#{@dn}$/i or dn =~ /,#{@dn}$/i
               # Search dn is equals or longer than base dn.
-              relative_dn = dn.sub(/,?#{@dn}$/i, '').split(',')
-              iter_search(relative_dn, scope, attributes, filter)
+              relative_dns = dn.sub(/,?#{@dn}$/i, '').split(',')
+              ret = iter_search(relative_dns, scope)
+
             elsif @dn =~ /,#{dn}$/i
               # Search dn is shorter than base dn.
               case scope
               when :base_object
-                raise NoSuchObjectError, "#{dn} doesn't match to basedn."
+                raise NoSuchObjectError, "#{dn} doesn't match to base dn."
               when :single_level
-                relative_dn = dn.sub(/,?#{@dn}$/i, '').split(',')
+                relative_dns = dn.sub(/,?#{@dn}$/i, '').split(',')
                 if relative_dn.length == 1
                   scope = :base_object
-                  @children.values.reduce([]) do |acc, child|
-                    acc + iter_search(relative_dn, scope, attributes, filter)
+                  ret = @children.values.reduce([]) do |acc, child|
+                    acc + iter_search(relative_dns, scope)
                   end
                 else
-                  raise NoSuchObjectError, "#{dn} doesn't match to basedn."
+                  raise NoSuchObjectError, "#{dn} doesn't match to base dn."
                 end
               when :whole_subtree
-                relative_dn = []
-                iter_search(relative_dn, scope, attributes, filter)
+                relative_dns = []
+                ret = iter_search(relative_dns, scope)
               end
-            end
 
-            if dn =~ /^#{@dn}$/i
-              relative_dn = []
-            elsif @dn =~ /,#{dn}$/i
-              relative_dn = []
-            elsif dn =~ /,#{@dn}$/i
-              relative_dn = dn.sub(/,#{@dn}$/i, '').split(',')
             else
-              raise NoSuchObjectError, "#{dn} doesn't match to basedn."
+              # Search dn doesn't match to base dn.
+              raise NoSuchObjectError, "#{dn} doesn't match to base dn."
             end
 
-            iter_search(relative_dn, scope, attributes, filter)
+            raise NoSuchObjectError, "No entry is hit." if ret.empty?
+            ret
           end
-
-          protected
-
-          def iter_add(relative_dn, attributes)
-            raise ArgumentError, "Argument relative_dn is empty." if relative_dn.empty?
-
-            next_dn = relative_dn.pop
-            if relative_dn.empty?
-              raise EntryAlreadyExistsError, "dn #{next_dn},#{@dn} is already exists." if @children.has_key?(next_dn)
-              @children[next_dn] = Entry.new("#{next_dn},#{@dn}", attributes)
-            else
-              raise UnwillingToPerformError, "dn #{next_dn},#{@dn} doesn't exist." unless @children.has_key?(next_dn)
-              @children[next_dn].iter_add(relative_dn, attributes)
-            end
-          end
-
-          def iter_search(relative_dn, scope, attributes, filter)
-            if relative_dn.empty?
-              init = @attributes.select(filter) ? [Entry.new(@dn, select_attributes(attributes))] : []
-
-              case scope
-              when :base_object
-                init
-              when :single_level
-                @children.values + init
-              when :whole_subtree
-                @children.values.reduce(init) do |acc, child|
-                  acc + child.iter_search(relative_dn, scope, attributes, filter)
-                end
-              end
-            else
-              next_dn = relative_dn.pop
-              if @children.has_key?(next_dn)
-                @children[next_dn].iter_search(relative_dn, scope, attributes, filter)
-              else
-                raise NoSuchObjectError, "No entry is found."
-              end
-            end
-          end
-
-
-          private
 
           def select_attributes(attributes)
             ret = {}
@@ -298,6 +257,31 @@ module Mock
             end
             ret
           end
+
+          protected
+
+          def iter_search(relative_dns, scope)
+            if relative_dns.empty?
+              case scope
+              when :base_object
+                [self]
+              when :single_level
+                @children.values << self
+              when :whole_subtree
+                @children.values.reduce([self]) do |acc, child|
+                  acc + child.iter_search(relative_dns, scope)
+                end
+              end
+            else
+              next_dn = relative_dns.pop
+              if @children.has_key?(next_dn)
+                @children[next_dn].iter_search(relative_dns, scope)
+              else
+                raise NoSuchObjectError, "No entry is found."
+              end
+            end
+          end
+
         end
 
 
