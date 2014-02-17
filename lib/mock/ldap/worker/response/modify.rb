@@ -1,5 +1,4 @@
-require 'mock/ldap/worker/response/pdu'
-require 'mock/ldap/worker/error'
+require 'mock/ldap/worker/response/abst_response'
 require 'mock/ldap/worker/response/Entry'
 
 module Mock
@@ -8,20 +7,21 @@ module Mock
       module Response
         extend Mock::Ldap::Worker::Error
 
-        class Modify
-          include Pdu
+        class Modify < AbstResponse
 
           def initialize(request)
             @protocol = :ModifyResponse
-            @message_id = request.message_id
-            @matched_dn = sanitize_dn(request.object)
-            Entry.modify(request.object, request.changes)
-            @result = :success
+            @matched_dn = request.object
             @diagnostic_message = "Modify #{@matched_dn} entry."
-          rescue Error::LdapError
-            @result = $!.code
-            @diagnostic_message = $!.message
+            super
           end
+
+          private
+
+          def execute
+            Entry.modify(@request.object, @request.changes)
+          end
+
         end
 
       end

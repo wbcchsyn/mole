@@ -1,44 +1,37 @@
-require 'mock/ldap/worker/response/pdu'
-require 'mock/ldap/worker/error'
+require 'mock/ldap/worker/response/abst_response'
 require 'mock/ldap/worker/response/Entry'
-require 'mock/ldap/worker/tag'
 
 module Mock
   module Ldap
     module Worker
       module Response
-        extend Mock::Ldap::Worker::Error
 
-        class Search
-          include Pdu
-          extend Mock::Ldap::Worker::Tag
+        class Search < AbstResponse
 
           def initialize(request)
             @protocol = :SearchResultDone
-            @message_id = request.message_id
-            @matched_dn = sanitize_dn(request.base_object)
-            @entries = Entry.search(request.base_object, request.scope, request.attributes, request.filter)
-            @result = :success
-            @diagnostic_message = "#{@entries.length} entries are hit."
-          rescue Error::LdapError
-            @result = $!.code
-            @diagnostic_message = $!.message
+            @matched_dn = request.base_object
+            @diagnostic_message = "Search #{request.base_object} #{request.scope} #{request.attributes}."
+            super
           end
 
           def to_pdu
             if @entries
               results = @entries.map do |entry|
-                create_ldap_message(@message_id,
-                                    create_search_result_entry(entry))
+                create_ldap_message(create_search_result_entry(entry))
               end
 
-              results << super
+              results + super
             else
               super
             end
           end
 
           private
+
+          def execute
+            @entries = Entry.search(@request.base_object, @request.scope, @request.attributes, @request.filter)
+          end
 
           def create_search_result_entry(entry)
             dn = OpenSSL::ASN1::OctetString.new(entry.dn)

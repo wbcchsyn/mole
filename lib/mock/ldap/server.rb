@@ -77,28 +77,26 @@ module Mock
 
           loop do
             receive = OpenSSL::ASN1.decode(sock.fetch_ber)
-            @logger.debug(Asn1::pp_pdu(receive))
-
             request, response = Mock::Ldap::Worker.handle(receive)
+            send = response.to_pdu
 
-            @logger.info("Receive #{request.protocol}.")
-            if response.result == :success
-              @logger.info("send #{response.diagnostic_message}")
-            else
-              @logger.warn("send #{response.diagnostic_message}")
-            end
-
-            pdu = response.to_pdu
-
-            if pdu.is_a?(Array)
-              pdu.each do |p|
-                @logger.debug(Asn1::pp_pdu(p))
-                sock.write(p.to_der)
-              end
-            else
-              @logger.debug(Asn1::pp_pdu(pdu))
+            send.each do |pdu|
               sock.write(pdu.to_der)
             end
+
+
+            @logger.info("Receive: #{request.protocol}.")
+            @logger.debug(Asn1::pp_pdu(receive))
+
+            if response.result == :success
+              @logger.info("Send: #{response.diagnostic_message}")
+            else
+              @logger.warn("Send: #{response.diagnostic_message}")
+            end
+            send.each do |pdu|
+              @logger.debug(Asn1::pp_pdu(pdu))
+            end
+
           end
 
         rescue Errno::EBADF

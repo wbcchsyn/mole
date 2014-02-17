@@ -3,6 +3,7 @@ require 'openssl'
 require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/tag'
 require 'mock/ldap/worker/request/common_parser'
+require 'mock/ldap/worker/request/abst_request'
 
 module Mock
   module Ldap
@@ -11,15 +12,13 @@ module Mock
         extend Mock::Ldap::Worker::Tag
         extend Mock::Ldap::Worker::Error
 
-        class Search
+        class Search < AbstRequest
           def initialize(message_id, operation)
-            @message_id = message_id
             @protocol = :SearchRequest
-            @operation = operation
-            parse_request
+            super
           end
 
-          attr_reader :message_id, :protocol, :base_object, :scope, :deref_aliases, :size_limit, :time_limit, :types_only, :filter, :attributes
+          attr_reader :base_object, :scope, :deref_aliases, :size_limit, :time_limit, :types_only, :filter, :attributes
 
           # Parse SearchRequest. See RFC4511 Section 4.5
           def parse_request

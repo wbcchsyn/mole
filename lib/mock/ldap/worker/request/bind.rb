@@ -2,6 +2,7 @@ require 'openssl'
 
 require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/tag'
+require 'mock/ldap/worker/request/abst_request'
 
 module Mock
   module Ldap
@@ -10,15 +11,13 @@ module Mock
         extend Mock::Ldap::Worker::Tag
         extend Mock::Ldap::Worker::Error
 
-        class Bind
+        class Bind < AbstRequest
           def initialize(message_id, operation)
-            @message_id = message_id
             @protocol = :BindRequest
-            @operation = operation
-            parse_request
+            super
           end
 
-          attr_reader :message_id, :protocol, :version, :name, :authentication
+          attr_reader :version, :name, :authentication
 
           private
 

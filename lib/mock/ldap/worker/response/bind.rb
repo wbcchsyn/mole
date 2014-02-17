@@ -1,24 +1,23 @@
-require 'mock/ldap/worker/response/pdu'
-require 'mock/ldap/worker/error'
+require 'mock/ldap/worker/response/abst_response'
 
 module Mock
   module Ldap
     module Worker
       module Response
-        extend Mock::Ldap::Worker::Error
 
-        class Bind
-          include Pdu
+        class Bind < AbstResponse
 
           def initialize(request)
             @protocol = :BindResponse
-            @message_id = request.message_id
-            @result = :success
-            @matched_dn = sanitize_dn(request.name)
+            @matched_dn = request.name
             @diagnostic_message = "Bind Succeeded by #{request.name}."
-          rescue Error::LdapError
-            @result = $!.code
-            @diagnostic_message = $!.message
+            super
+          end
+
+          private
+
+          def execute
+            # Do nothing.
           end
 
         end
