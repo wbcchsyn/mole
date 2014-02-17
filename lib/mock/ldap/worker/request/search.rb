@@ -39,31 +39,20 @@ module Mock
             unless @operation.value[1].is_a?(OpenSSL::ASN1::Enumerated)
               raise Error::PduIdentifierError, "scope of SearchRequest is requested to be Universal Enumerated."
             end
-            case @operation.value[1].value.to_i
-            when Tag::Scope[:base_object]
-              @scope = :base_object
-            when Tag::Scope[:single_level]
-              @scope = :single_level
-            when Tag::Scope[:whole_subtree]
-              @scope = :whole_subtree
-            else
+            begin
+              @scope = Tag::Scope[@operation.value[1].value.to_i]
+            rescue Error::KeyError
               raise RuntimeError, "scope of SearchRequest is requested to be 0 or 1 or 2."
             end
 
             unless @operation.value[2].is_a?(OpenSSL::ASN1::Enumerated)
               raise Error::PduIdentifierError, "derefAliases of SearchRequest is requested to be Universal Enumerated."
             end
-            case @operation.value[2].value.to_i
-            when Tag::DerefAliases[:never_deref_aliases]
-              @deref_aliases = :never_deref_aliases
-            when Tag::DerefAliases[:deref_in_searching]
-              @deref_aliases = :deref_in_searching
-            when Tag::DerefAliases[:deref_finding_base_obj]
-              @deref_aliases = :deref_finding_base_obj
-            when Tag::DerefAliases[:deref_always]
-              @deref_aliases = :deref_always
-            else
-              raise RuntimeError, "derefAliases of SearchRequest is requested to be 0 or 1 or 2 or 3."
+
+            begin
+              @deref_aliases = Tag::DerefAliases[@operation.value[2].value.to_i]
+            rescue Error::KeyError
+              raise RuntimeError, "Receive unknown derefAliases #{@operation.value[2].value.to_i}"
             end
 
             unless @operation.value[3].is_a?(OpenSSL::ASN1::Integer)
@@ -98,30 +87,24 @@ module Mock
             unless pdu.tag_class == :CONTEXT_SPECIFIC
               raise Error::PduIdentifierError, "filter of SearchRequest is requested to be Context-specific class ber."
             end
-            case pdu.tag
-            when Tag::FilterType[:and]
-              [:and, parse_sub_filter(pdu)]
-            when Tag::FilterType[:or]
-              [:or, parse_sub_filter(pdu)]
-            when Tag::FilterType[:not]
-              [:not, parse_sub_filter(pdu)]
-            when Tag::FilterType[:equality_match]
-              [:equality_match, parse_attribute_value_assertion(pdu)]
-            when Tag::FilterType[:substrings]
-              [:substrings, parse_substring_filter(pdu)]
-            when Tag::FilterType[:greater_or_equal]
-              [:greater_or_equal, parse_attribute_value_assertion(pdu)]
-            when Tag::FilterType[:less_or_equal]
-              [:less_or_equal, parse_attribute_value_assertion(pdu)]
-            when Tag::FilterType[:present]
-              [:present, parse_present_filter(pdu)]
-            when Tag::FilterType[:approx_match]
-              [:approx_match, parse_attribute_value_assertion(pdu)]
-            when Tag::FilterType[:extensible_match]
-              [:extensible_match, parse_matching_rule_assertion(pdu)]
-            else
-              raise RuntimeError, "Receive unknown filter type."
+
+            filter_type = Tag::FilterType[pdu.tag]
+            case filter_type
+            when :and, :or, :not
+                filter = parse_sub_filter(pdu)
+            when :equality_match, :greater_or_equal, :less_or_equal, :approx_match
+              filter = parse_attribute_value_assertion(pdu)
+            when :substrings
+              filter = parse_substring_filter(pdu)
+            when :present
+              filter = parse_present_filter(pdu)
+            when :extensible_match
+              filter = parse_matching_rule_assertion(pdu)
             end
+
+            [filter_type, filter]
+          rescue Error::KeyError
+            raise RuntimeError, "Receive unknown filter type."
           end
 
           # Use to extract individial filter from and, or, not filter

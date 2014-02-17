@@ -14,22 +14,20 @@ module Mock
         when Tag::Application[:BindRequest]
           request = Request::Bind.new(message_id, request_body)
           response = Response::Bind.new(request)
-          [request, response]
         when Tag::Application[:AddRequest]
           request = Request::Add.new(message_id, request_body)
           response = Response::Add.new(request)
-          [request, response]
         when Tag::Application[:SearchRequest]
           request = Request::Search.new(message_id, request_body)
           response = Response::Search.new(request)
-          [request, response]
         when Tag::Application[:ModifyRequest]
           request = Request::Modify.new(message_id, request_body)
           response = Response::Modify.new(request)
-          [request, response]
         else
           raise RuntimeError, "Receive unknown request tag."
         end
+
+        [request, response]
       end
 
       def clear

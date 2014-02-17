@@ -55,21 +55,15 @@ module Mock
             unless pdu.value[0].is_a?(OpenSSL::ASN1::Enumerated)
               raise Error::PduIdentifierError, "Each oparation of ModifyRequest changes is requested to be Universal Enumerated."
             end
-            case pdu.value[0].value
-            when Tag::ChangesOperation[:add]
-              operation = :add
-            when Tag::ChangesOperation[:delete]
-              operation = :delete
-            when Tag::ChangesOperation[:replace]
-              operation = :replace
-            else
-              raise RuntimeError, 'Receive unknown operation.'
-            end
 
+            operation = Tag::ChangeOperation[pdu.value[0].value.to_i]
             modification = Request::parse_partial_attribute(pdu.value[1])
-
             [operation, modification]
+
+          rescue Error::KeyError
+            raise RuntimeError, 'Receive unknown operation.'
           end
+
         end
 
       end
