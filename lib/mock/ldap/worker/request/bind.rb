@@ -54,7 +54,7 @@ module Mock
             end
 
             case auth.tag
-            when Tag::Context_Specific[:AuthenticationChoice][:simple]
+            when Tag::AuthenticationChoice[:simple]
               if auth.value.is_a?(Array)
                 raise Error::PduIdentifierError, "simple AuthenticationChoice of BindRequest is requested to be primitive."
               end

@@ -15,7 +15,7 @@ describe "Mock::Ldap::Worker#handle" do
     version_pdu = OpenSSL::ASN1::Integer.new(version)
     name_pdu = OpenSSL::ASN1::OctetString.new(name)
     auth_pdu = OpenSSL::ASN1::OctetString.new(auth,
-                                              tag=Mock::Ldap::Worker::Tag::Context_Specific[:AuthenticationChoice][:simple],
+                                              tag=Mock::Ldap::Worker::Tag::AuthenticationChoice[:simple],
                                               tagging=:IMPLICIT,
                                               tag_class=:CONTEXT_SPECIFIC)
 
@@ -41,7 +41,7 @@ describe "Mock::Ldap::Worker#handle" do
     version_pdu = OpenSSL::ASN1::Integer.new(version)
     name_pdu = OpenSSL::ASN1::OctetString.new(name)
     auth_pdu = OpenSSL::ASN1::OctetString.new(auth,
-                                              tag=Mock::Ldap::Worker::Tag::Context_Specific[:AuthenticationChoice][:simple],
+                                              tag=Mock::Ldap::Worker::Tag::AuthenticationChoice[:simple],
                                               tagging=:IMPLICIT,
                                               tag_class=:CONTEXT_SPECIFIC)
 

@@ -28,12 +28,10 @@ module Mock
           :IntermediateResponse => 25,
         }
 
-        Context_Specific = {
-          # See RFC4511 section 4.2
-          :AuthenticationChoice => {
-            :simple => 0,
-            :sasl => 3,
-          },
+        # See RFC4511 section 4.2
+        AuthenticationChoice = {
+          :simple => 0,
+          :sasl => 3,
         }
 
         # See RFC4511 Section 4.5.1
