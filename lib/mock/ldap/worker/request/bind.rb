@@ -1,6 +1,6 @@
 require 'openssl'
 
-require 'mock/ldap/worker/request/error'
+require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/tag'
 
 module Mock
@@ -8,6 +8,7 @@ module Mock
     module Worker
       module Request
         extend Mock::Ldap::Worker::Tag
+        extend Mock::Ldap::Worker::Error
 
         class Bind
           def initialize(message_id, operation)
@@ -24,15 +25,15 @@ module Mock
           # Parse BindRequest. See RFC4511 Section 4.2
           def parse_request
             unless @operation.value.is_a?(Array)
-              raise BerIdenitfierError, "BindRequest is requested to be Constructed ber."
+              raise Error::PduIdenitfierError, "BindRequest is requested to be Constructed ber."
             end
 
             unless @operation.value.length == 3
-              raise BerConstructedLengthError, "length of BindRequest is requested to be exactly 3."
+              raise Error::PduConstructedLengthError, "length of BindRequest is requested to be exactly 3."
             end
 
             unless @operation.value[0].is_a?(OpenSSL::ASN1::Integer)
-              raise BerIdentifierError, "version of BindRequest is requested to be Universal Integer."
+              raise Error::PduIdentifierError, "version of BindRequest is requested to be Universal Integer."
             end
             @version = @operation.value[0].value.to_i
             unless @version == 3
@@ -40,7 +41,7 @@ module Mock
             end
 
             unless @operation.value[1].is_a?(OpenSSL::ASN1::OctetString)
-              raise BerIdentifierError, "name of BindRequest is requested to be Universal String."
+              raise Error::PduIdentifierError, "name of BindRequest is requested to be Universal String."
             end
             @name = @operation.value[1].value
 
@@ -49,19 +50,19 @@ module Mock
 
           def parse_authentication_choice(auth)
             unless auth.tag_class == :CONTEXT_SPECIFIC
-              raise BerIdentifierError, "authentication of BindRequest is requested to be Context-specific class."
+              raise Error::PduIdentifierError, "authentication of BindRequest is requested to be Context-specific class."
             end
 
             case auth.tag
             when Tag::Context_Specific[:AuthenticationChoice][:simple]
               if auth.value.is_a?(Array)
-                raise BerIdentifierError, "simple AuthenticationChoice of BindRequest is requested to be primitive."
+                raise Error::PduIdentifierError, "simple AuthenticationChoice of BindRequest is requested to be primitive."
               end
               auth.value
             when Tag::Context_Specific[:AuthenticationChoice][:sasl]
               raise RuntimeError, "We support only simple authentication."
             else
-              raise BerIdentifierError, "AuthenticationChoice tag is requested to be 0 or 2."
+              raise Error::PduIdentifierError, "AuthenticationChoice tag is requested to be 0 or 2."
             end
           end
         end

@@ -1,10 +1,10 @@
-require 'mock/ldap/worker/response/error'
+require 'mock/ldap/worker/error'
 
 module Mock
   module Ldap
     module Worker
       module Response
-
+        extend Mock::Ldap::Worker::Error
 
         class Entry
 
@@ -192,7 +192,7 @@ module Mock
           def self.add(dn, attributes)
             @@mutex.synchronize {
               if @@base
-                raise EntryAlreadyExistsError, "#{dn} is already exists." if @@base.dn == dn
+                raise Error::EntryAlreadyExistsError, "#{dn} is already exists." if @@base.dn == dn
 
                 relative_dn, parent_dn = dn.split(',', 2)
                 @@base.search(parent_dn, :base_object)[0].add_child(relative_dn, attributes)
@@ -200,19 +200,19 @@ module Mock
                 @@base = new(dn, attributes)
               end
             }
-          rescue NoSuchObjectError
-            raise UnwillingToPerformError, "Parent dn is not found."
+          rescue Error::NoSuchObjectError
+            raise Error::UnwillingToPerformError, "Parent dn is not found."
           end
 
           def add_child(relative_dn, attributes)
-            raise RuntimeError, 'Assertion' if relative_dn.include?(',')
-            raise EntryAlreadyExistsError, "#{relative_dn},#{@dn} is already exists." if @children.has_key?(relative_dn)
+            raise Error::RuntimeError, 'Assertion' if relative_dn.include?(',')
+            raise Error::EntryAlreadyExistsError, "#{relative_dn},#{@dn} is already exists." if @children.has_key?(relative_dn)
             @children[relative_dn] = Entry.new("#{relative_dn},#{@dn}", attributes)
           end
 
           def self.modify(dn, operations)
             @@mutex.synchronize {
-              raise NoSuchObjectError, "Basedn doesn't exist." unless @@base
+              raise Error::NoSuchObjectError, "Basedn doesn't exist." unless @@base
               target = @@base.search(dn, :base_object)[0].clone
 
               operations.each do |operation|
@@ -237,12 +237,12 @@ module Mock
                 @attributes[type] = values
               end
             when :delete
-              raise NoSuchAttributeError, 'No such attribute is.' unless @attributes.has_key?(type)
+              raise Error::NoSuchAttributeError, 'No such attribute is.' unless @attributes.has_key?(type)
               if values.empty?
                 @attributes.delete(type)
               else
                 values.each do |v|
-                  @attributes[type].delete(v) ||(raise NoSuchAttributeError, "Attribute #{type} doesn't have value #{v}.")
+                  @attributes[type].delete(v) ||(raise Error::NoSuchAttributeError, "Attribute #{type} doesn't have value #{v}.")
                 end
                 @attributes.delete(type) if @attributes[type].empty?
               end
@@ -258,13 +258,13 @@ module Mock
 
           def self.search(dn, scope, attributes, filter)
             @@mutex.synchronize {
-              raise NoSuchObjectError, "Basedn doesn't exist." unless @@base
+              raise Error::NoSuchObjectError, "Basedn doesn't exist." unless @@base
               ret = @@base.search(dn, scope).select { |entry|
                 entry.attributes.select(filter)
               }.map { |entry|
                 Entry.new(dn, entry.select_attributes(attributes))
               }
-              raise NoSuchObjectError, 'No entry is hit.' if ret.empty?
+              raise Error::NoSuchObjectError, 'No entry is hit.' if ret.empty?
               ret
             }
           end
@@ -279,7 +279,7 @@ module Mock
               # Search dn is shorter than base dn.
               case scope
               when :base_object
-                raise NoSuchObjectError, "#{dn} doesn't match to base dn."
+                raise Error::NoSuchObjectError, "#{dn} doesn't match to base dn."
               when :single_level
                 relative_dns = dn.sub(/,?#{@dn}$/i, '').split(',')
                 if relative_dn.length == 1
@@ -288,7 +288,7 @@ module Mock
                     acc + iter_search(relative_dns, scope)
                   end
                 else
-                  raise NoSuchObjectError, "#{dn} doesn't match to base dn."
+                  raise Error::NoSuchObjectError, "#{dn} doesn't match to base dn."
                 end
               when :whole_subtree
                 relative_dns = []
@@ -297,10 +297,10 @@ module Mock
 
             else
               # Search dn doesn't match to base dn.
-              raise NoSuchObjectError, "#{dn} doesn't match to base dn."
+              raise Error::NoSuchObjectError, "#{dn} doesn't match to base dn."
             end
 
-            raise NoSuchObjectError, "No entry is hit." if ret.empty?
+            raise Error::NoSuchObjectError, "No entry is hit." if ret.empty?
             ret
           end
 
@@ -331,7 +331,7 @@ module Mock
               if @children.has_key?(next_dn)
                 @children[next_dn].iter_search(relative_dns, scope)
               else
-                raise NoSuchObjectError, "No entry is found."
+                raise Error::NoSuchObjectError, "No entry is found."
               end
             end
           end

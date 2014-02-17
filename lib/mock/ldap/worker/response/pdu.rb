@@ -1,5 +1,5 @@
 require 'mock/ldap/worker/response/result_code'
-require 'mock/ldap/worker/response/error'
+require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/tag'
 
 module Mock

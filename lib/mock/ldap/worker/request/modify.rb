@@ -1,6 +1,6 @@
 require 'openssl'
 
-require 'mock/ldap/worker/request/error'
+require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/tag'
 require 'mock/ldap/worker/request/common_parser'
 
@@ -9,6 +9,7 @@ module Mock
     module Worker
       module Request
         extend Mock::Ldap::Worker::Tag
+        extend Mock::Ldap::Worker::Error
 
         class Modify
           def initialize(message_id, operation)
@@ -25,20 +26,20 @@ module Mock
           # Parse ModifyRequest. See RFC4511 Section 4.6
           def parse_request
             unless @operation.value.is_a?(Array)
-              raise BerIdentifierError, "ModifyRequest is requested to be Constructed ber."
+              raise Error::PduIdentifierError, "ModifyRequest is requested to be Constructed ber."
             end
 
             unless @operation.value.length == 2
-              raise BerConstructedLengthError, "length of ModifyRequest is requested to be exactly 2."
+              raise Error::PduConstructedLengthError, "length of ModifyRequest is requested to be exactly 2."
             end
 
             unless @operation.value[0].is_a?(OpenSSL::ASN1::OctetString)
-              raise BerIdentifierError, "object of ModifyRequest is requested to be Universal OctetString."
+              raise Error::PduIdentifierError, "object of ModifyRequest is requested to be Universal OctetString."
             end
             @object = @operation.value[0].value
 
             unless @operation.value[1].is_a?(OpenSSL::ASN1::Sequence)
-              raise BerIdentierError, "changes of ModifyRequest is requested to be Universal Sequence."
+              raise Error::PduIdentierError, "changes of ModifyRequest is requested to be Universal Sequence."
             end
 
             @changes = @operation.value[1].value.map do |pdu|
@@ -48,11 +49,11 @@ module Mock
 
           def parse_operation(pdu)
             unless pdu.is_a?(OpenSSL::ASN1::Sequence)
-              raise BerIdentifierError, "Each change of ModifyRequest changes is requested to be Universal Sequence."
+              raise Error::PduIdentifierError, "Each change of ModifyRequest changes is requested to be Universal Sequence."
             end
 
             unless pdu.value[0].is_a?(OpenSSL::ASN1::Enumerated)
-              raise BerIdentifierError, "Each oparation of ModifyRequest changes is requested to be Universal Enumerated."
+              raise Error::PduIdentifierError, "Each oparation of ModifyRequest changes is requested to be Universal Enumerated."
             end
             case pdu.value[0].value
             when Tag::ChangesOperation[:add]

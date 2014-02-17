@@ -1,6 +1,6 @@
 require 'openssl'
 
-require 'mock/ldap/worker/request/error'
+require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/tag'
 require 'mock/ldap/worker/request/common_parser'
 
@@ -9,6 +9,7 @@ module Mock
     module Worker
       module Request
         extend Mock::Ldap::Worker::Tag
+        extend Mock::Ldap::Worker::Error
 
         class Add
           def initialize(message_id, operation)
@@ -25,15 +26,15 @@ module Mock
           # Parse AddRequest. See RFC4511 Section 4.7
           def parse_request
             unless @operation.value.is_a?(Array)
-              raise BerIdenitfierError, "AddRequest is requested to be Constructed ber."
+              raise Error::PduIdenitfierError, "AddRequest is requested to be Constructed ber."
             end
 
             unless @operation.value.length == 2
-              raise BerConstructedLengthError, "length of AddRequest is requested to be exactly 2."
+              raise Error::PduConstructedLengthError, "length of AddRequest is requested to be exactly 2."
             end
 
             unless @operation.value[0].is_a?(OpenSSL::ASN1::OctetString)
-              raise BerIdentifierError, "entry of AddRequest is requested to be Universal OctetString."
+              raise Error::PduIdentifierError, "entry of AddRequest is requested to be Universal OctetString."
             end
             @entry = @operation.value[0].value
 

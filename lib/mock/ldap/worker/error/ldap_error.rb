@@ -1,50 +1,47 @@
-require 'mock/ldap/worker/response/result_code'
-
 module Mock
   module Ldap
     module Worker
-      module Response
+      module Error
 
-
-        class Error < StandardError
+        class LdapError < StandardError
         end
 
-        class UnwillingToPerformError < Error
+        class UnwillingToPerformError < LdapError
           @@code = :unwillingToPerform
           def code
             @@code
           end
         end
 
-        class EntryAlreadyExistsError < Error
+        class EntryAlreadyExistsError < LdapError
           @@code = :entryAlreadyExists
           def code
             @@code
           end
         end
 
-        class InvalidDNSyntaxError < Error
+        class InvalidDNSyntaxError < LdapError
           @@code = :invalidDNSyntax
           def code
             @@code
           end
         end
 
-        class NoSuchObjectError < Error
+        class NoSuchObjectError < LdapError
           @@code = :noSuchObject
           def code
             @@code
           end
         end
 
-        class ProtocolError < Error
+        class ProtocolError < LdapError
           @@code = :proocolError
           def code
             @@code
           end
         end
 
-        class NoSuchAttributeError < Error
+        class NoSuchAttributeError < LdapError
           @@code = :noSuchAttribute
           def code
             @@code

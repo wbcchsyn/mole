@@ -1,5 +1,5 @@
 require 'mock/ldap/worker/response/pdu'
-require 'mock/ldap/worker/response/error'
+require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/response/Entry'
 require 'mock/ldap/worker/tag'
 
@@ -7,6 +7,7 @@ module Mock
   module Ldap
     module Worker
       module Response
+        extend Mock::Ldap::Worker::Error
 
         class Search
           include Pdu
@@ -19,7 +20,7 @@ module Mock
             @entries = Entry.search(request.base_object, request.scope, request.attributes, request.filter)
             @result = :success
             @diagnostic_message = "#{@entries.length} entries are hit."
-          rescue Error
+          rescue Error::LdapError
             @result = $!.code
             @diagnostic_message = $!.message
           end

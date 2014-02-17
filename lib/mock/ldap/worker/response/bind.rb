@@ -1,10 +1,11 @@
 require 'mock/ldap/worker/response/pdu'
-require 'mock/ldap/worker/response/error'
+require 'mock/ldap/worker/error'
 
 module Mock
   module Ldap
     module Worker
       module Response
+        extend Mock::Ldap::Worker::Error
 
         class Bind
           include Pdu
@@ -15,7 +16,7 @@ module Mock
             @result = :success
             @matched_dn = sanitize_dn(request.name)
             @diagnostic_message = "Bind Succeeded by #{request.name}."
-          rescue Error
+          rescue Error::LdapError
             @result = $!.code
             @diagnostic_message = $!.message
           end

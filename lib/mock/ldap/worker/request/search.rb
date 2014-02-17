@@ -1,6 +1,6 @@
 require 'openssl'
 
-require 'mock/ldap/worker/request/error'
+require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/tag'
 require 'mock/ldap/worker/request/common_parser'
 
@@ -9,6 +9,7 @@ module Mock
     module Worker
       module Request
         extend Mock::Ldap::Worker::Tag
+        extend Mock::Ldap::Worker::Error
 
         class Search
           def initialize(message_id, operation)
@@ -23,20 +24,20 @@ module Mock
           # Parse SearchRequest. See RFC4511 Section 4.5
           def parse_request
             unless @operation.value.is_a?(Array)
-              raise BerIdenitfierError, "SearchRequest is requested to be Constructed ber."
+              raise Error::PduIdenitfierError, "SearchRequest is requested to be Constructed ber."
             end
 
             unless @operation.value.length == 8
-              raise BerConstructedLengthError, "length of SearchRequest is requested to be exactly 8."
+              raise Error::PduConstructedLengthError, "length of SearchRequest is requested to be exactly 8."
             end
 
             unless @operation.value[0].is_a?(OpenSSL::ASN1::OctetString)
-              raise BerIdentifierError, "baseObject of SearchRequest is requested to be Universal OctetString."
+              raise Error::PduIdentifierError, "baseObject of SearchRequest is requested to be Universal OctetString."
             end
             @base_object = @operation.value[0].value
 
             unless @operation.value[1].is_a?(OpenSSL::ASN1::Enumerated)
-              raise BerIdentifierError, "scope of SearchRequest is requested to be Universal Enumerated."
+              raise Error::PduIdentifierError, "scope of SearchRequest is requested to be Universal Enumerated."
             end
             case @operation.value[1].value.to_i
             when Tag::Scope[:base_object]
@@ -50,7 +51,7 @@ module Mock
             end
 
             unless @operation.value[2].is_a?(OpenSSL::ASN1::Enumerated)
-              raise BerIdentifierError, "derefAliases of SearchRequest is requested to be Universal Enumerated."
+              raise Error::PduIdentifierError, "derefAliases of SearchRequest is requested to be Universal Enumerated."
             end
             case @operation.value[2].value.to_i
             when Tag::DerefAliases[:never_deref_aliases]
@@ -66,28 +67,28 @@ module Mock
             end
 
             unless @operation.value[3].is_a?(OpenSSL::ASN1::Integer)
-              raise BerIdentifierError, "sizeLimit of SearchRequest is requested to be Universal Integer."
+              raise Error::PduIdentifierError, "sizeLimit of SearchRequest is requested to be Universal Integer."
             end
             @size_limit = @operation.value[3].value.to_i
 
             unless @operation.value[4].is_a?(OpenSSL::ASN1::Integer)
-              raise BerIdentifierError, "timeLimit of SearchRequest is requested to be Universal Integer."
+              raise Error::PduIdentifierError, "timeLimit of SearchRequest is requested to be Universal Integer."
             end
             @time_limit = @operation.value[4].value.to_i
 
             unless @operation.value[5].is_a?(OpenSSL::ASN1::Boolean)
-              raise BerIdentifierError, "typesOnly of SearchRequest is requested to be Universal Boolean."
+              raise Error::PduIdentifierError, "typesOnly of SearchRequest is requested to be Universal Boolean."
             end
             @types_only = @operation.value[5].value
 
             @filter = parse_filter(@operation.value[6])
 
             unless @operation.value[7].is_a?(OpenSSL::ASN1::Sequence)
-              raise BerIdentifierError, "attributes of SearchRequest is requested to be Universal Sequence."
+              raise Error::PduIdentifierError, "attributes of SearchRequest is requested to be Universal Sequence."
             end
             @attributes = @operation.value[7].map do |attribute|
               unless attribute.is_a?(OpenSSL::ASN1::OctetString)
-                raise BerIdentifierError, "Each value of SearchRequest attributes is requested to be Universal OctetString."
+                raise Error::PduIdentifierError, "Each value of SearchRequest attributes is requested to be Universal OctetString."
               end
               attribute.value
             end
@@ -95,7 +96,7 @@ module Mock
 
           def parse_filter(pdu)
             unless pdu.tag_class == :CONTEXT_SPECIFIC
-              raise BerIdentifierError, "filter of SearchRequest is requested to be Context-specific class ber."
+              raise Error::PduIdentifierError, "filter of SearchRequest is requested to be Context-specific class ber."
             end
             case pdu.tag
             when Tag::FilterType[:and]
@@ -126,7 +127,7 @@ module Mock
           # Use to extract individial filter from and, or, not filter
           def parse_sub_filter(pdu)
             unless pdu.value.is_a?(Array)
-              raise BerIdentifierError, "'and', 'or', 'not' Filter is requested to be constructed class ber."
+              raise Error::PduIdentifierError, "'and', 'or', 'not' Filter is requested to be constructed class ber."
             end
             pdu.value.map do |f|
               parse_filter(f)
@@ -135,7 +136,7 @@ module Mock
 
           def parse_present_filter(pdu)
             if pdu.value.is_a?(Array)
-              raise BerIdentifierError, "present filter is requested to be Primitive ber."
+              raise Error::PduIdentifierError, "present filter is requested to be Primitive ber."
             end
 
             pdu.value
@@ -143,26 +144,26 @@ module Mock
 
           def parse_substring_filter(pdu)
             unless pdu.value.is_a?(Array)
-              raise BerIdentifierError, "SubstringFilter is requested to be constructed ber."
+              raise Error::PduIdentifierError, "SubstringFilter is requested to be constructed ber."
             end
 
             unless pdu.value[0].is_a?(OpenSSL::ASN1::OctetString)
-              raise BerIdentifierError, "type of SubstringFilter is requested to be Universal OctetString."
+              raise Error::PduIdentifierError, "type of SubstringFilter is requested to be Universal OctetString."
             end
             type = pdu.value[0].value
 
             unless pdu.value[1].valu.is_a?(OpenSSL::ASN1::OctetString)
-              raise BerIdentifierError, "substrings of SubstringFilter is requested to be Universal Sequence."
+              raise Error::PduIdentifierError, "substrings of SubstringFilter is requested to be Universal Sequence."
             end
             _initial = false
             _final = false
             substrings = pdu.value[1].value.map do |s|
               unless s.tag_class == :CONTEXT_SPECIFIC
-                raise BerIdentifierError, "Each value of SubstringFilter substrings is requested to be Context-specific class ber."
+                raise Error::PduIdentifierError, "Each value of SubstringFilter substrings is requested to be Context-specific class ber."
               end
 
               if s.value.is_a?(Array)
-                raise BerIdentifierError, "Each value of SubstringFilter substrings is requested to be Primitive."
+                raise Error::PduIdentifierError, "Each value of SubstringFilter substrings is requested to be Primitive."
               end
 
               case s.tag
@@ -191,17 +192,17 @@ module Mock
 
           def parse_attribute_value_assertion(pdu)
             unless pdu.value.is_a?(Array)
-              raise BerIdentifierError, "AttributeValueAssertion is requested to be constructed ber."
+              raise Error::PduIdentifierError, "AttributeValueAssertion is requested to be constructed ber."
             end
 
             unless pdu.value.length == 2
-              raise BerConstructedLengthError, "The length of AttributeValueAssertion is requested to be exactly 2."
+              raise Error::PduConstructedLengthError, "The length of AttributeValueAssertion is requested to be exactly 2."
             end
 
             unless pdu.value.all? do |v|
                 v.is_a?(OpenSSL::ASN1::OctetString)
               end
-              raise BerIdentifierError, "Each value of AttributeValueAssertion is requested to be Universal OctetString."
+              raise Error::PduIdentifierError, "Each value of AttributeValueAssertion is requested to be Universal OctetString."
             end
 
             pdu.value.map(&:value)

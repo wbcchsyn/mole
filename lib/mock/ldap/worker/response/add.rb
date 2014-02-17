@@ -1,11 +1,12 @@
 require 'mock/ldap/worker/response/pdu'
-require 'mock/ldap/worker/response/error'
+require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/response/Entry'
 
 module Mock
   module Ldap
     module Worker
       module Response
+        extend Mock::Ldap::Worker::Error
 
         class Add
           include Pdu
@@ -17,7 +18,7 @@ module Mock
             Entry.add(request.entry, request.attributes)
             @result = :success
             @diagnostic_message = "Succeeded to add #{request.entry}."
-          rescue Error
+          rescue Error::LdapError
             @result = $!.code
             @diagnostic_message = $!.message
           end
