@@ -176,12 +176,12 @@ module Mock
           end
 
           def initialize_copy(original)
-            @dn = original.dn.clone
-            @attributes = original.attributes.clone
-            @children = original.children.clone
+            @dn = @dn.clone
+            @attributes = @attributes.clone
+            @children = @children.clone
           end
 
-          attr_reader :dn, :attributes, :children
+          attr_reader :dn, :attributes
 
           def self.clear
             @@mutex.synchronize {
@@ -193,21 +193,17 @@ module Mock
             @@mutex.synchronize {
               if @@base
                 raise Error::EntryAlreadyExistsError, "#{dn} is already exists." if @@base.dn == dn
-
-                relative_dn, parent_dn = dn.split(',', 2)
-                @@base.search(parent_dn, :base_object)[0].add_child(relative_dn, attributes)
+                Entry.new(dn, attributes).join
               else
                 @@base = new(dn, attributes)
               end
             }
-          rescue Error::NoSuchObjectError
-            raise Error::UnwillingToPerformError, "Parent dn is not found."
           end
 
-          def add_child(relative_dn, attributes)
-            raise Error::RuntimeError, 'Assertion' if relative_dn.include?(',')
-            raise Error::EntryAlreadyExistsError, "#{relative_dn},#{@dn} is already exists." if @children.has_key?(relative_dn)
-            @children[relative_dn] = Entry.new("#{relative_dn},#{@dn}", attributes)
+          def join(force=false)
+            parent.add_child(self, force)
+          rescue Error::NoSuchObjectError
+            raise Error::UnwillingToPerformError, "Parent entry is not found."
           end
 
           def self.modify(dn, operations)
@@ -219,9 +215,7 @@ module Mock
                 target.modify(operation)
               end
 
-              relative_dn, parent_dn = dn.split(',', 2)
-              parent = @@base.search(parent_dn, :base_object)[0]
-              parent.children[relative_dn] = target
+              target.join(force=true)
             }
           end
 
@@ -346,6 +340,23 @@ module Mock
             end
           end
 
+          def add_child(child, force=false)
+            relative_dn, parent_dn = child.dn.split(',', 2)
+            raise RuntimeError, "Assertion. The parent of #{child} is not this entry." unless parent_dn == @dn
+
+            if (not force) and @children.has_key?(relative_dn)
+              raise Error::EntryAlreadyExistsError, "#{@dn} is already exists."
+            end
+            @children[relative_dn] = child
+          end
+
+          private
+
+          def parent
+            relative_dn, parent_dn = @dn.split(',', 2)
+            raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found." unless parent_dn
+            @@base.search(parent_dn, :base_object)[0] || (raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found.")
+          end
         end
 
 
