@@ -35,7 +35,7 @@ module Mock
         end
 
         class ProtocolError < LdapError
-          @@code = :proocolError
+          @@code = :protocolError
           def code
             @@code
           end
@@ -50,6 +50,13 @@ module Mock
 
         class NoSuchAttributeError < LdapError
           @@code = :noSuchAttribute
+          def code
+            @@code
+          end
+        end
+
+        class NotAllowedOnNonLeafError < LdapError
+          @@code = :notAllowedOnNonLeaf
           def code
             @@code
           end
