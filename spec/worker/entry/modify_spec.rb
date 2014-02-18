@@ -125,4 +125,19 @@ describe "Mock::Ldap::Worker::Response::Entry#modify" do
     }.should raise_error(@error::NoSuchAttributeError)
     @entry.search(dn, :base_object, ['mail', 'homedirectory', 'mobile'], @filter)[0].attributes['mobile'].should be_nil
   end
+
+  it "should treat tree dn." do
+    dn = 'ou=People,dc=example,dc=com'
+    foo = ['bar', 'baz']
+    @entry.modify(dn, [[:add, ["foo", foo]]])
+    @entry.search(dn, :base_object, [], @filter)[0].attributes['foo'].should == foo
+    @entry.search(dn, :whole_subtree, [], @filter).length.should == 3
+  end
+
+  it "should modify base dn." do
+    dn = 'dc=example,dc=com'
+    @entry.modify(dn, [[:replace, ['objectClass', ['posixGroup']]]])
+    @entry.search(dn, :base_object, [], @filter)[0].attributes['objectClass'].should == ['posixGroup']
+    @entry.search(dn, :whole_subtree, [], @filter).length.should == 6
+  end
 end

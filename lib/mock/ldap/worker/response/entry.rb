@@ -175,13 +175,20 @@ module Mock
             @children = IgnoreCaseHash.new
           end
 
+          attr_reader :dn, :attributes
+
           def initialize_copy(original)
             @dn = @dn.clone
             @attributes = @attributes.clone
-            @children = @children.clone
+            @children = @children.reduce(IgnoreCaseHash.new) do |acc, val|
+              acc[val[0]] = val[1]
+              acc
+            end
           end
 
-          attr_reader :dn, :attributes
+          def base?
+            equal?(@@base)
+          end
 
           def self.clear
             @@mutex.synchronize {
@@ -216,8 +223,13 @@ module Mock
                 replace.modify(operation)
               end
 
-              target.delete
-              replace.add
+              if target.base?
+                @@base = replace
+              else
+                parent = target.parent
+                parent.del_child(target)
+                parent.add_child(replace)
+              end
             }
           end
 
@@ -342,8 +354,6 @@ module Mock
             @@base.search(parent_dn, :base_object)[0] || (raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found.")
           end
 
-          protected
-
           def iter_search(relative_dns, scope)
             if relative_dns.empty?
               case scope
@@ -380,6 +390,7 @@ module Mock
             @children.delete(relative_dn)
           end
 
+          protected :iter_search
         end
 
 
