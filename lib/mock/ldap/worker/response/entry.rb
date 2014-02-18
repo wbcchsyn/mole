@@ -350,6 +350,29 @@ module Mock
             }
           end
 
+          def self.modify_dn(old_dn, new_rdn, delete_old, new_parent_dn)
+            @@mutex.synchronize {
+              old_entry = @@base.search(old_dn, :base_object)[0]
+
+              # Make it a rule not to move Base DN following OpenLDAP.
+              raise Error::UnwillingToPerformError, "#{old_dn} is Base DN." if old_entry.base?
+
+              new_parent_dn = old_entry.dn unless new_parent_dn
+
+              old_entry.iter_copy("#{new_rdn},#{new_parent_dn}")
+              old_entry.delete if delete_old
+            }
+          end
+
+          # Copy and join itself to new dn including its children recursively.
+          def iter_copy(dn)
+            new_entry = Entry.new(dn, @attributes.clone).join
+            @children.values.each do |child|
+              child.iter_copy("#{child.rdn},#{dn}")
+            end
+            new_entry
+          end
+
           def leaf?
             @children.empty?
           end
