@@ -20,8 +20,9 @@ module Mock
             sanitize_dn
             execute
           rescue Error::LdapError
-            @result = $!.code
-            @diagnostic_messge = $!.message
+            @matched_dn = '' unless @matched_dn
+            @result = ($!.code || :operationsError)
+            @diagnostic_messge = ($!.message || '')
           end
 
           def to_pdu
