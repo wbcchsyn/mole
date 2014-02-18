@@ -5,13 +5,14 @@ module Mock
     module Worker
       module Response
 
-        class Bind < AbstResponse
+        class Del < AbstResponse
 
           def initialize(request)
-            @protocol = :BindResponse
-            @matched_dn = request.name
-            @diagnostic_message = "Bind Succeeded by #{request.name}."
+            @protocol = :DelResponse
+            @matched_dn = ''
+            @diagnostic_message = "DelResponse is not implemented yet."
             super
+            @result = :protocolError
           end
 
           private

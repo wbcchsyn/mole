@@ -77,24 +77,31 @@ module Mock
 
           loop do
             receive = OpenSSL::ASN1.decode(sock.fetch_ber)
-            request, response = Mock::Ldap::Worker.handle(receive)
-            send = response.to_pdu
 
-            send.each do |pdu|
-              sock.write(pdu.to_der)
+            begin
+              request, response = Mock::Ldap::Worker.handle(receive)
+              @logger.info("Receive: #{request.protocol}.")
+              @logger.debug(Asn1::pp_pdu(receive))
+            rescue
+              @logger.error("Receive: unknown request.")
+              @logger.debug(Asn1::pp_pdu(receive))
+              raise
             end
 
+            if response
+              send = response.to_pdu
+              send.each do |pdu|
+                sock.write(pdu.to_der)
+              end
 
-            @logger.info("Receive: #{request.protocol}.")
-            @logger.debug(Asn1::pp_pdu(receive))
-
-            if response.result == :success
-              @logger.info("Send: #{response.diagnostic_message}")
-            else
-              @logger.warn("Send: #{response.diagnostic_message}")
-            end
-            send.each do |pdu|
-              @logger.debug(Asn1::pp_pdu(pdu))
+              if response.result == :success
+                @logger.info("Send: #{response.diagnostic_message}")
+              else
+                @log
+              end
+              send.each do |pdu|
+                @logger.debug(Asn1::pp_pdu(pdu))
+              end
             end
 
           end

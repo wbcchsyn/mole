@@ -5,13 +5,14 @@ module Mock
     module Worker
       module Response
 
-        class Bind < AbstResponse
+        class Extend < AbstResponse
 
           def initialize(request)
-            @protocol = :BindResponse
-            @matched_dn = request.name
-            @diagnostic_message = "Bind Succeeded by #{request.name}."
+            @protocol = :ExtendResponse
+            @matched_dn = ''
+            @diagnostic_message = "ExtendResponse is not implemented yet."
             super
+            @result = :protocolError
           end
 
           private

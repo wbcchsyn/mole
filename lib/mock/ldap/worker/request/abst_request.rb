@@ -21,9 +21,8 @@ module Mock
 
           private
 
-          # Implement in each child class
           def parse_request
-            raise RuntimeError, "Abstruct method parse_request is called."
+            # Implement in each child class
           end
         end
 

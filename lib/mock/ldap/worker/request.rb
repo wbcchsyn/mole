@@ -2,14 +2,21 @@ require 'openssl'
 
 require 'mock/ldap/worker/error'
 require 'mock/ldap/worker/request/bind'
-require 'mock/ldap/worker/request/add'
+require 'mock/ldap/worker/request/unbind'
 require 'mock/ldap/worker/request/search'
 require 'mock/ldap/worker/request/modify.rb'
+require 'mock/ldap/worker/request/add'
+require 'mock/ldap/worker/request/del'
+require 'mock/ldap/worker/request/modify_dn'
+require 'mock/ldap/worker/request/compare'
+require 'mock/ldap/worker/request/abandon'
+require 'mock/ldap/worker/request/extend'
 
 module Mock
   module Ldap
     module Worker
       module Request
+        extend Mock::Ldap::Worker::Tag
         extend Mock::Ldap::Worker::Error
 
         # See RFC4511 Section 4.1.1
@@ -30,11 +37,9 @@ module Mock
           unless pdu.value[1].tag_class == :APPLICATION
             raise Error::PduIdentifierError, "protocolOp of LDAPMessage is requested to be Application class ber."
           end
-          protocol = pdu.value[1].tag
           operation = pdu.value[1]
 
-
-          [message_id, protocol, operation]
+          [message_id, operation]
         end
 
         module_function :parse_ldap_message

@@ -34,7 +34,7 @@ module Mock
           private
 
           def execute
-            raise RuntimeError, "Abstruct method 'execute' is called."
+            # Implement in each child class.
           end
 
           def sanitize_dn
