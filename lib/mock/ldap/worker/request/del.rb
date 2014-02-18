@@ -16,6 +16,16 @@ module Mock
             @protocol = :DelRequest
             super
           end
+
+          attr_reader :dn
+
+          private
+
+          # Parse DelRequest. See RFC4511 Section 4.8
+          def parse_request
+            Request.sanitize_primitive(@operation, 'DelRequest')
+            @dn = @operation.value
+          end
         end
 
       end

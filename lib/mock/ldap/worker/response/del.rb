@@ -9,13 +9,16 @@ module Mock
 
           def initialize(request)
             @protocol = :DelResponse
-            @matched_dn = ''
-            @diagnostic_message = "DelResponse is not implemented yet."
+            @matched_dn = request.dn
+            @diagnostic_message = "Delete #{request.dn}"
             super
-            @result = :protocolError
           end
 
           private
+
+          def execute
+            Entry.del(@request.dn)
+          end
 
         end
       end

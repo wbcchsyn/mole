@@ -193,15 +193,15 @@ module Mock
             @@mutex.synchronize {
               if @@base
                 raise Error::EntryAlreadyExistsError, "#{dn} is already exists." if @@base.dn == dn
-                Entry.new(dn, attributes).join
+                Entry.new(dn, attributes).add
               else
                 @@base = new(dn, attributes)
               end
             }
           end
 
-          def join(force=false)
-            parent.add_child(self, force)
+          def add
+            parent.add_child(self)
           rescue Error::NoSuchObjectError
             raise Error::UnwillingToPerformError, "Parent entry is not found."
           end
@@ -209,14 +209,23 @@ module Mock
           def self.modify(dn, operations)
             @@mutex.synchronize {
               raise Error::NoSuchObjectError, "Basedn doesn't exist." unless @@base
-              target = @@base.search(dn, :base_object)[0].clone
+              target = @@base.search(dn, :base_object)[0]
+              replace = target.clone
 
               operations.each do |operation|
-                target.modify(operation)
+                replace.modify(operation)
               end
 
-              target.join(force=true)
+              target.delete
+              replace.add
             }
+          end
+
+          def delete
+            raise Error::NotAllowedOnNonLeafError, "#{@dn} is not a leaf entry." unless leaf?
+            parent.del_child(self)
+          rescue Error::NoSuchObjectError
+            raise RuntimeError, "Assertion. Parent entry is not found."
           end
 
           def modify(operation)
@@ -316,6 +325,23 @@ module Mock
             end
           end
 
+          def self.del(dn)
+            @@mutex.synchronize {
+              raise Error::NoSuchObjectError, "Basedn doesn't exist." unless @@base
+              @@base.search(dn, :base_object)[0].delete
+            }
+          end
+
+          def leaf?
+            @children.empty?
+          end
+
+          def parent
+            relative_dn, parent_dn = @dn.split(',', 2)
+            raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found." unless parent_dn
+            @@base.search(parent_dn, :base_object)[0] || (raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found.")
+          end
+
           protected
 
           def iter_search(relative_dns, scope)
@@ -340,23 +366,20 @@ module Mock
             end
           end
 
-          def add_child(child, force=false)
+          def add_child(child)
             relative_dn, parent_dn = child.dn.split(',', 2)
             raise RuntimeError, "Assertion. The parent of #{child} is not this entry." unless parent_dn == @dn
-
-            if (not force) and @children.has_key?(relative_dn)
-              raise Error::EntryAlreadyExistsError, "#{@dn} is already exists."
-            end
+            raise Error::EntryAlreadyExistsError, "#{@dn} is already exists." if @children.has_key?(relative_dn)
             @children[relative_dn] = child
           end
 
-          private
-
-          def parent
-            relative_dn, parent_dn = @dn.split(',', 2)
-            raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found." unless parent_dn
-            @@base.search(parent_dn, :base_object)[0] || (raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found.")
+          def del_child(child)
+            relative_dn, parent_dn = child.dn.split(',', 2)
+            raise RuntimeError, "Assertion. The parent of #{child} is not this entry." unless parent_dn == @dn
+            raise RuntimeError, "Assertion. Argument child is not a child of this entry." unless @children[relative_dn].equal?(child)
+            @children.delete(relative_dn)
           end
+
         end
 
 
