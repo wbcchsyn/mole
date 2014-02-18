@@ -245,4 +245,9 @@ describe "Mock::Ldap::Worker::Response::Entry#search" do
     filter = [:present, 'objectclass']
     @entry.search('dc=Example,dc=Com', scope, [], filter).length.should == 6
   end
+
+  it "should hit BaseDN if search base is parent of BaseDN and scope is :single_level." do
+    @entry.search('dc=com', :single_level, [], [:present, 'objectclass'])[0].dn.should == 'dc=example,dc=com'
+    @entry.search('dc=com', :single_level, [], [:present, 'objectclass']).length.should == 1
+  end
 end
