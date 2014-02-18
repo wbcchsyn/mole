@@ -31,7 +31,7 @@ module Mock
 
             def delete(key)
               keys.each do |k|
-                return super if k =~ /^#{key}$/i
+                return super(k) if k =~ /^#{key}$/i
               end
               nil
             end
