@@ -41,6 +41,13 @@ module Mock
           end
         end
 
+        class AuthMethodNotSupported < LdapError
+          @@code = :authMethodNotSupported
+          def code
+            @@code
+          end
+        end
+
         class NoSuchAttributeError < LdapError
           @@code = :noSuchAttribute
           def code

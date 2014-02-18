@@ -42,7 +42,7 @@ module Mock
           request = Request::ExtendRequestRequest.new(message_id, operation)
           response = Response::ExtendRequestRequest.new(request)
         else
-          raise RuntimeError, "Receive unknown request tag."
+          raise Error::ProtocolError, "Receive unknown request tag."
         end
 
         [request, response]

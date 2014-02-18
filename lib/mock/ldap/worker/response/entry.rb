@@ -149,7 +149,7 @@ module Mock
 
               if dn_attributes
                 # TODO Implement extensible_match when dn_attribute is True
-                raise RuntimeError, "extensibleMatch filter rule with dn attributes is not implemented yet."
+                raise Error::ProtocolError, "extensibleMatch filter rule with dn attributes is not implemented yet."
               end
 
               if matching_rule and type
@@ -161,7 +161,7 @@ module Mock
                   select([matching_rule, [t, match_value]])
                 }.any?
               else
-                raise RuntimeError, "Neither mathingRule nor type is not specified in extensibleMatch filter."
+                raise Error::ProtocolError, "Neither mathingRule nor type is not specified in extensibleMatch filter."
               end
             end
           end
