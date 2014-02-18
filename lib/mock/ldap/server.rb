@@ -97,7 +97,7 @@ module Mock
               if response.result == :success
                 @logger.info("Send: #{response.diagnostic_message}")
               else
-                @log
+                @logger.warn("Send: #{response.diagnostic_message}")
               end
               send.each do |pdu|
                 @logger.debug(Asn1::pp_pdu(pdu))
