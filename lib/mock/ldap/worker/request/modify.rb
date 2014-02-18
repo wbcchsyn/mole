@@ -24,38 +24,17 @@ module Mock
 
           # Parse ModifyRequest. See RFC4511 Section 4.6
           def parse_request
-            unless @operation.value.is_a?(Array)
-              raise Error::ProtocolError, "ModifyRequest is requested to be Constructed ber."
-            end
+            Request.sanitize_length(@operation, 2, 'ModifyRequest')
 
-            unless @operation.value.length == 2
-              raise Error::ProtocolError, "length of ModifyRequest is requested to be exactly 2."
-            end
-
-            unless @operation.value[0].is_a?(OpenSSL::ASN1::OctetString)
-              raise Error::ProtocolError, "object of ModifyRequest is requested to be Universal OctetString."
-            end
-            @object = @operation.value[0].value
-
-            unless @operation.value[1].is_a?(OpenSSL::ASN1::Sequence)
-              raise Error::ProtocolError, "changes of ModifyRequest is requested to be Universal Sequence."
-            end
-
-            @changes = @operation.value[1].value.map do |pdu|
+            @object = Request.parse_ldap_dn(@operation.value[0], 'object of ModifyRequest')
+            @changes = Request.parse_sequence(@operation.value[1], 'changes of ModifyRequest').map do |pdu|
               parse_operation(pdu)
             end
           end
 
           def parse_operation(pdu)
-            unless pdu.is_a?(OpenSSL::ASN1::Sequence)
-              raise Error::ProtocolError, "Each change of ModifyRequest changes is requested to be Universal Sequence."
-            end
-
-            unless pdu.value[0].is_a?(OpenSSL::ASN1::Enumerated)
-              raise Error::ProtocolError, "Each oparation of ModifyRequest changes is requested to be Universal Enumerated."
-            end
-
-            operation = Tag::ChangeOperation[pdu.value[0].value.to_i]
+            Request.parse_sequence(pdu, 'Each of ModifyRequest changes')
+            operation = Tag::ChangeOperation[Request.parse_enumerated(pdu.value[0], 'operation of ModifyRequest changes')]
             modification = Request::parse_partial_attribute(pdu.value[1])
             [operation, modification]
 

@@ -22,63 +22,28 @@ module Mock
 
           # Parse SearchRequest. See RFC4511 Section 4.5
           def parse_request
-            unless @operation.value.is_a?(Array)
-              raise Error::ProtocolError, "SearchRequest is requested to be Constructed ber."
-            end
+            Request.sanitize_length(@operation, 8, 'SearchRequest')
 
-            unless @operation.value.length == 8
-              raise Error::ProtocolError, "length of SearchRequest is requested to be exactly 8."
-            end
+            @base_object = Request.parse_ldap_dn(@operation.value[0], 'baseObject of SearchRequest')
 
-            unless @operation.value[0].is_a?(OpenSSL::ASN1::OctetString)
-              raise Error::ProtocolError, "baseObject of SearchRequest is requested to be Universal OctetString."
-            end
-            @base_object = @operation.value[0].value
-
-            unless @operation.value[1].is_a?(OpenSSL::ASN1::Enumerated)
-              raise Error::ProtocolError, "scope of SearchRequest is requested to be Universal Enumerated."
-            end
             begin
-              @scope = Tag::Scope[@operation.value[1].value.to_i]
+              @scope = Tag::Scope[Request.parse_enumerated(@operation.value[1], 'scope of SearchRequest')]
             rescue Error::KeyError
               raise Error::ProtocolError, "Receive unknown SearchRequest scope."
             end
 
-            unless @operation.value[2].is_a?(OpenSSL::ASN1::Enumerated)
-              raise Error::ProtocolError, "derefAliases of SearchRequest is requested to be Universal Enumerated."
-            end
-
             begin
-              @deref_aliases = Tag::DerefAliases[@operation.value[2].value.to_i]
+              @deref_aliases = Tag::DerefAliases[Request.parse_enumerated(@operation.value[2], 'derefAliases of SearchRequest')]
             rescue Error::KeyError
               raise Error::ProtocolError, "Receive unknown SearchRequest derefAliases."
             end
 
-            unless @operation.value[3].is_a?(OpenSSL::ASN1::Integer)
-              raise Error::ProtocolError, "sizeLimit of SearchRequest is requested to be Universal Integer."
-            end
-            @size_limit = @operation.value[3].value.to_i
-
-            unless @operation.value[4].is_a?(OpenSSL::ASN1::Integer)
-              raise Error::ProtocolError, "timeLimit of SearchRequest is requested to be Universal Integer."
-            end
-            @time_limit = @operation.value[4].value.to_i
-
-            unless @operation.value[5].is_a?(OpenSSL::ASN1::Boolean)
-              raise Error::ProtocolError, "typesOnly of SearchRequest is requested to be Universal Boolean."
-            end
-            @types_only = @operation.value[5].value
-
+            @size_limit = Request.parse_integer(@operation.value[3], 'sizeLimit of SearchRequest')
+            @time_limit = Request.parse_integer(@operation.value[4], 'timeLimit of SearchRequest')
+            @types_only = Request.parse_boolean(@operation.value[5], 'typesOnly of SearchRequest')
             @filter = parse_filter(@operation.value[6])
-
-            unless @operation.value[7].is_a?(OpenSSL::ASN1::Sequence)
-              raise Error::ProtocolError, "attributes of SearchRequest is requested to be Universal Sequence."
-            end
-            @attributes = @operation.value[7].map do |attribute|
-              unless attribute.is_a?(OpenSSL::ASN1::OctetString)
-                raise Error::ProtocolError, "Each value of SearchRequest attributes is requested to be Universal OctetString."
-              end
-              attribute.value
+            @attributes = Request.parse_sequence(@operation.value[7], 'attributes of SearchRequest').map do |attribute|
+              Request.parse_octet_string(attribute, 'Each SearchRequest attributes')
             end
           end
 
@@ -108,63 +73,44 @@ module Mock
 
           # Use to extract individial filter from and, or, not filter
           def parse_sub_filter(pdu)
-            unless pdu.value.is_a?(Array)
-              raise Error::ProtocolError, "'and', 'or', 'not' Filter is requested to be constructed class ber."
-            end
+            Request.sanitize_constructed(pdu, "'and', 'or' and 'not' Filter")
+
             pdu.value.map do |f|
               parse_filter(f)
             end
           end
 
           def parse_present_filter(pdu)
-            if pdu.value.is_a?(Array)
-              raise Error::ProtocolError, "present filter is requested to be Primitive ber."
-            end
-
+            Request.sanitize_primitive(pdu, 'present Filter')
             pdu.value
           end
 
           def parse_substring_filter(pdu)
-            unless pdu.value.is_a?(Array)
-              raise Error::ProtocolError, "SubstringFilter is requested to be constructed ber."
-            end
+            Request.sanitize_constructed(pdu, 'SubstringFilter')
 
-            unless pdu.value[0].is_a?(OpenSSL::ASN1::OctetString)
-              raise Error::ProtocolError, "type of SubstringFilter is requested to be Universal OctetString."
-            end
-            type = pdu.value[0].value
+            type = Request.sanitize_octet_string(pdu.value[0], 'type of SubstringFilter')
 
-            unless pdu.value[1].valu.is_a?(OpenSSL::ASN1::OctetString)
-              raise Error::ProtocolError, "substrings of SubstringFilter is requested to be Universal Sequence."
-            end
             _initial = false
             _final = false
-            substrings = pdu.value[1].value.map do |s|
-              unless s.tag_class == :CONTEXT_SPECIFIC
-                raise Error::ProtocolError, "Each value of SubstringFilter substrings is requested to be Context-specific class ber."
-              end
+            substrings = Request.parse_sequence(pdu, 'Each SubstringFilter').map do |s|
+              Request.sanitize_class(s, :CONTEXT_SPECIFIC, 'Each SubstringFilter substrings')
 
-              if s.value.is_a?(Array)
-                raise Error::ProtocolError, "Each value of SubstringFilter substrings is requested to be Primitive."
-              end
-
-              case s.tag
-              when Tag::SubstringType[:initial]
+              case position = Tag::SubstringType[s.tag]
+              when :initial
                 raise Error::ProtocolError, "Tow or more than two initial substrings are in one SubstringFilter." if _initial
                 _initial = true
-                [:initial, s.value]
-              when Tag::SubstringType[:any]
-                [:any, s.value]
-              when Tag::SubstringType[:final]
+              when :any
+                # Do nothing
+              when :final
                 raise Error::ProtocolError, "Tow or more than two final substrings are in one SubstringFilter." if _final
                 _final = true
-                [:final, s.value]
-              else
-                raise Error::ProtocolError, "Each value of SubstringFilter substrings tag is requested to be 0 or 1 or 2."
               end
+              [position, s.value]
             end
 
             [type, substrings]
+          rescue Error::KeyError
+            raise Error::ProtocolError, "Receive unknown SubstringFilter whose tag is #{s.tag}."
           end
 
           def parse_matching_rule_assertion(pdu)
@@ -173,21 +119,12 @@ module Mock
           end
 
           def parse_attribute_value_assertion(pdu)
-            unless pdu.value.is_a?(Array)
-              raise Error::ProtocolError, "AttributeValueAssertion is requested to be constructed ber."
-            end
+            Request.sanitize_length(pdu, 2, 'AttributeValueAssertion type Filter')
 
-            unless pdu.value.length == 2
-              raise Error::ProtocolError, "The length of AttributeValueAssertion is requested to be exactly 2."
-            end
-
-            unless pdu.value.all? do |v|
-                v.is_a?(OpenSSL::ASN1::OctetString)
-              end
-              raise Error::ProtocolError, "Each value of AttributeValueAssertion is requested to be Universal OctetString."
-            end
-
-            pdu.value.map(&:value)
+            [
+              Request.parse_octet_string(pdu.value[0], 'type of Filter AttributeValueAssertion'),
+              Request.parse_octet_string(pdu.value[1], 'value of Filter AttributeValueAssertion')
+            ]
           end
 
         end

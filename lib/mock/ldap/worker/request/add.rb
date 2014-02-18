@@ -24,21 +24,9 @@ module Mock
 
           # Parse AddRequest. See RFC4511 Section 4.7
           def parse_request
-            unless @operation.value.is_a?(Array)
-              raise Error::ProtocolError, "AddRequest is requested to be Constructed ber."
-            end
-
-            unless @operation.value.length == 2
-              raise Error::ProtocolError, "length of AddRequest is requested to be exactly 2."
-            end
-
-            unless @operation.value[0].is_a?(OpenSSL::ASN1::OctetString)
-              raise Error::ProtocolError, "entry of AddRequest is requested to be Universal OctetString."
-            end
-            @entry = @operation.value[0].value
-
-            # TODO Parse attributes
-            @attributes = @operation.value[1].value.map do |attribute|
+            Request.sanitize_length(@operation, 2, 'AddRequest')
+            @entry = Request.parse_octet_string(@operation.value[0], 'entry of AddRequest')
+            @attributes = Request.parse_sequence(@operation.value[1], 'attributes of AddRequest').map do |attribute|
               Request::parse_attribute(attribute)
             end
           end

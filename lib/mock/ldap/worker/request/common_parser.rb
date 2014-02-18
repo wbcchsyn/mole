@@ -1,22 +1,95 @@
-require 'openssl'
+ require 'openssl'
 
-require 'mock/ldap/worker/error'
+ require 'mock/ldap/worker/error'
 
-module Mock
-  module Ldap
-    module Worker
-      module Request
-        extend Mock::Ldap::Worker::Error
+ module Mock
+   module Ldap
+     module Worker
+       module Request
+         extend Mock::Ldap::Worker::Error
+
+         def sanitize_constructed(pdu, subject)
+           unless pdu.value.is_a?(Array)
+             message = "#{subject} is requested to be Constructed ber."
+             raise Error::ProtocolError, message
+           end
+           pdu
+         end
+
+         def sanitize_primitive(pdu, subject)
+           if pdu.value.is_a?(Array)
+             message = "#{subject} is requested to be Primitive ber."
+             raise Error::ProtocolError, message
+           end
+         end
+
+         def sanitize_length(pdu, length, subject)
+           sanitize_constructed(pdu, subject)
+           unless pdu.value.length == length
+             message = "The length of #{subject} is requested to be exactly #{length}."
+             raise Error::ProtocolError, message
+           end
+           pdu
+         end
+
+         def sanitize_class(pdu, tag_class, subject)
+           unless pdu.tag_class == tag_class
+             message = "#{subject} is requested to be #{tag_class.to_s.capitalize} class ber."
+             raise Error::ProtocolError, message
+           end
+           pdu
+         end
+
+         module_function :sanitize_constructed, :sanitize_primitive, :sanitize_length, :sanitize_class
+
+         def parse_sequence(pdu, subject)
+           unless pdu.is_a?(OpenSSL::ASN1::Sequence)
+             message = "#{subject} is requested to be Universal SEQUENCE ber."
+             raise Error::ProtocolError, message
+           end
+           pdu.value
+         end
+
+         def parse_octet_string(pdu, subject)
+           unless pdu.is_a?(OpenSSL::ASN1::OctetString)
+             message = "#{subject} is requested to be Universal OCTET STRING ber."
+             raise Error::ProtocolError, message
+           end
+           pdu.value
+         end
+
+        def parse_integer(pdu, subject)
+          unless pdu.is_a?(OpenSSL::ASN1::Integer)
+            message = "#{subject} is requested to be Universal INTEGER ber."
+            raise Error::ProtocolError, message
+          end
+          pdu.value.to_i
+        end
+
+        def parse_enumerated(pdu, subject)
+          unless pdu.is_a?(OpenSSL::ASN1::Enumerated)
+            message = "#{subject} is requested to be Universal ENUMERATED ber."
+            raise Error::ProtocolError, message
+          end
+          pdu.value.to_i
+        end
+
+        def parse_boolean(pdu, subject)
+          unless pdu.is_a?(OpenSSL::ASN1::Boolean)
+            message = "#{subject} is requested to be Universal BOOLEAN ber."
+            raise Error::ProtocolError, message
+          end
+          pdu.value
+        end
+
+        module_function :parse_sequence, :parse_octet_string, :parse_integer, :parse_enumerated, :parse_boolean
 
         # See RFC4511 Section 4.1.3
-        def parse_ldap_dn(pdu)
-          unless pdu.is_a?(OpenSSL::ASN1::OctetString)
-            raise Error::ProtocolError, "LDAPDN is requested to be Universal OctetString."
-          end
-          ldap_dn = pdu.value
+        def parse_ldap_dn(pdu, subject)
+          ldap_dn = parse_octet_string(pdu, subject)
 
-          unless ldap_dn.empty? or ldap_dn =~ /^\w=\w(,\w=\w)*$/
-            raise InvalidDNSyntaxError, "#{ldap_dn} is not legal as LDAP DN."
+          unless ldap_dn.empty? or ldap_dn =~ /^\w+=\w+(,\w+=\w+)*$/
+            raise Error::InvalidDNSyntaxError, "#{ldap_dn} is not legal as LDAP DN."
           end
 
           ldap_dn

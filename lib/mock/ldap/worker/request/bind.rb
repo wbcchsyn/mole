@@ -23,40 +23,23 @@ module Mock
 
           # Parse BindRequest. See RFC4511 Section 4.2
           def parse_request
-            unless @operation.value.is_a?(Array)
-              raise Error::ProtocolError, "BindRequest is requested to be Constructed ber."
-            end
+            Request.sanitize_length(@operation, 3, 'BindRequest')
 
-            unless @operation.value.length == 3
-              raise Error::ProtocolError, "length of BindRequest is requested to be exactly 3."
-            end
+            @version = Request.parse_integer(@operation.value[0], 'version of BindRequest')
+            @name = Request.parse_octet_string(@operation.value[1], 'name of BindRequest')
+            @authentication = parse_authentication_choice(@operation.value[2])
 
-            unless @operation.value[0].is_a?(OpenSSL::ASN1::Integer)
-              raise Error::ProtocolError, "version of BindRequest is requested to be Universal Integer."
-            end
-            @version = @operation.value[0].value.to_i
             unless @version == 3
               raise Error::ProtocolError, "We support only ldap version 3."
             end
-
-            unless @operation.value[1].is_a?(OpenSSL::ASN1::OctetString)
-              raise Error::ProtocolError, "name of BindRequest is requested to be Universal String."
-            end
-            @name = @operation.value[1].value
-
-            @authentication = parse_authentication_choice(@operation.value[2])
           end
 
           def parse_authentication_choice(auth)
-            unless auth.tag_class == :CONTEXT_SPECIFIC
-              raise Error::ProtocolError, "authentication of BindRequest is requested to be Context-specific class."
-            end
+            Request.sanitize_class(auth, :CONTEXT_SPECIFIC, 'authentication of BindRequest')
 
             case auth.tag
             when Tag::AuthenticationChoice[:simple]
-              if auth.value.is_a?(Array)
-                raise Error::ProtocolError, "simple AuthenticationChoice of BindRequest is requested to be primitive."
-              end
+              Request.sanitize_primitive(auth, 'simple AuthenticationChoice of BindRequest')
               auth.value
             when Tag::Context_Specific[:AuthenticationChoice][:sasl]
               raise Error::AuthMethodNotSupported, "We support only simple authentication."
