@@ -87,4 +87,64 @@ describe "Net::LDAP#search" do
       ldap.search(filter: Net::LDAP::Filter.intersect(filter1, filter2)).length.should == 3
     end
   end
+
+  it "should fetch all attributes if attributes is empty." do
+    scope = Net::LDAP::SearchScope_BaseObject
+    @ldap.open do |ldap|
+      dn = 'uid=sato,ou=People,dc=example,dc=com'
+      entry = ldap.search(base: dn, scope: scope, attributes: [])[0]
+      entry[:objectClass].should_not be_empty
+      entry[:uid].should_not be_empty
+      entry[:uidNumber].should_not be_empty
+      entry[:gidNumber].should_not be_empty
+    end
+  end
+
+  it "should fetch all attributes if specified attributes include '*'." do
+    scope = Net::LDAP::SearchScope_BaseObject
+    @ldap.open do |ldap|
+      dn = 'uid=sato,ou=People,dc=example,dc=com'
+      entry = ldap.search(base: dn, scope: scope, attributes: ['*'])[0]
+      entry[:objectClass].should_not be_empty
+      entry[:uid].should_not be_empty
+      entry[:uidNumber].should_not be_empty
+      entry[:gidNumber].should_not be_empty
+
+      entry = ldap.search(base: dn, scope: scope, attributes: ['*', 'uid'])[0]
+      entry[:objectClass].should_not be_empty
+      entry[:uid].should_not be_empty
+      entry[:uidNumber].should_not be_empty
+      entry[:gidNumber].should_not be_empty
+
+      entry = ldap.search(base: dn, scope: scope, attributes: ['*', 'foo'])[0]
+      entry[:objectClass].should_not be_empty
+      entry[:uid].should_not be_empty
+      entry[:uidNumber].should_not be_empty
+      entry[:gidNumber].should_not be_empty
+    end
+  end
+
+  it "should fetch all attributes if specified attribute is only '1.1' ." do
+    scope = Net::LDAP::SearchScope_BaseObject
+    @ldap.open do |ldap|
+      dn = 'uid=sato,ou=People,dc=example,dc=com'
+      entry = ldap.search(base: dn, scope: scope, attributes: ['1.1'])[0]
+      entry[:objectClass].should be_empty
+      entry[:uid].should be_empty
+      entry[:uidNumber].should be_empty
+      entry[:gidNumber].should be_empty
+
+      entry = ldap.search(base: dn, scope: scope, attributes: ['1.1', 'uid'])[0]
+      entry[:objectClass].should be_empty
+      entry[:uid].should_not be_empty
+      entry[:uidNumber].should be_empty
+      entry[:gidNumber].should be_empty
+
+      entry = ldap.search(base: dn, scope: scope, attributes: ['1.1', 'foo'])[0]
+      entry[:objectClass].should be_empty
+      entry[:uid].should be_empty
+      entry[:uidNumber].should be_empty
+      entry[:gidNumber].should be_empty
+    end
+  end
 end

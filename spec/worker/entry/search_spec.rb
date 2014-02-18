@@ -91,14 +91,51 @@ describe "Mock::Ldap::Worker::Response::Entry#search" do
     @entry.search('uid=sato,ou=People,dc=example,dc=com', scope, [], filter).length.should == 1
   end
 
-  it "should response attributes only specified." do
+  it "should fetch attributes only specified." do
     scope = :base_object
     filter = [:present, 'objectClass']
-    @entry.search('dc=example,dc=com', scope, [], filter)[0].attributes.should be_empty
     entry = @entry.search('uid=sato,ou=People,dc=example,dc=com', scope, ['uid', 'bar'], filter)[0]
     entry.attributes['uid'].should == ['sato']
     entry.attributes['bar'].should be_nil
     entry.attributes['objectClass'].should be_nil
+  end
+
+  it "should fetch all attributes if empty attributes is specified." do
+    scope = :base_object
+    filter = [:present, 'objectClass']
+    entry = @entry.search('dc=example,dc=com', scope, [], filter)[0]
+    entry.attributes[:dc].should == ['example']
+    entry.attributes[:objectClass].should == ['organizationalUnit']
+
+    entry = @entry.search('uid=sato,ou=People,dc=example,dc=com', scope, [], filter)[0]
+    entry.attributes[:uid].should == ['sato']
+    entry.attributes[:uidNumber].should == ['10001']
+    entry.attributes[:objectClass].should == ['posixAccount', 'inetOrgPerson']
+  end
+
+  it "should fetch all attributes if '*' is included in specified attributes." do
+    scope = :base_object
+    filter = [:present, 'objectClass']
+    entry = @entry.search('dc=example,dc=com', scope, ['dc', '*'], filter)[0]
+    entry.attributes[:dc].should == ['example']
+    entry.attributes[:objectClass].should == ['organizationalUnit']
+
+    entry = @entry.search('uid=sato,ou=People,dc=example,dc=com', scope, ['*'], filter)[0]
+    entry.attributes[:uid].should == ['sato']
+    entry.attributes[:uidNumber].should == ['10001']
+    entry.attributes[:objectClass].should == ['posixAccount', 'inetOrgPerson']
+  end
+
+  it "should fetch no attribute if specified attributes is only '1.1'." do
+    scope = :base_object
+    filter = [:present, 'objectClass']
+    dn = 'uid=sato,ou=People,dc=example,dc=com'
+    @entry.modify(dn, [[:add, ["1.1", 'foo']]])
+    entry = @entry.search('uid=sato,ou=People,dc=example,dc=com', scope, ['1.1'], filter)[0]
+    entry.attributes.should be_empty
+
+    entry = @entry.search('uid=sato,ou=People,dc=example,dc=com', scope, ['1.1', 'bar'], filter)[0]
+    entry.attributes.should_not be_empty
   end
 
   it "should filter with present filter." do

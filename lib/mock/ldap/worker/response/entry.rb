@@ -305,11 +305,21 @@ module Mock
           end
 
           def select_attributes(attributes)
-            ret = {}
-            attributes.each do |type|
-              ret[type] = @attributes[type] if @attributes.has_key?(type)
+            if attributes.empty?
+              @attributes.clone
+
+            elsif attributes.include?('*')
+              @attributes.clone
+
+            elsif attributes == ['1.1']
+              []
+
+            else
+              attributes.reduce([]) do |acc, type|
+                acc << [type, @attributes[type]] if @attributes.has_key?(type)
+                acc
+              end
             end
-            ret
           end
 
           protected
