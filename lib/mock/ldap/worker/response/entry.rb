@@ -175,8 +175,9 @@ module Mock
             @children = IgnoreCaseHash.new
           end
 
-          attr_reader :dn, :attributes
+          attr_reader :dn, :attributes, :children
 
+          # Deep copy, but not join itself to DN tree
           def initialize_copy(original)
             @attributes = @attributes.clone
             @children = @children.reduce(IgnoreCaseHash.new) do |acc, val|
@@ -199,15 +200,16 @@ module Mock
             @@mutex.synchronize {
               if @@base
                 raise Error::EntryAlreadyExistsError, "#{dn} is already exists." if @@base.dn == dn
-                Entry.new(dn, attributes).add
+                Entry.new(dn, attributes).join
               else
                 @@base = new(dn, attributes)
               end
             }
           end
 
-          def add
-            parent.add_child(self)
+          def join
+            raise Error::EntryAlreadyExistsError, "#{@dn} is already exists." if parent.children.has_key?(rdn)
+            parent.children[rdn] = self
           rescue Error::NoSuchObjectError
             raise Error::UnwillingToPerformError, "Parent entry is not found."
           end
@@ -225,16 +227,19 @@ module Mock
               if target.base?
                 @@base = replace
               else
-                parent = target.parent
-                parent.del_child(target)
-                parent.add_child(replace)
+                target.delete
+                replace.join
               end
             }
           end
 
           def delete
-            raise Error::NotAllowedOnNonLeafError, "#{@dn} is not a leaf entry." unless leaf?
-            parent.del_child(self)
+            if base?
+              @@base = nil
+            else
+              parent.children.delete(rdn) ||
+                (raise RuntimeError, "Assertion. This instance is neither base dn nor child of another.")
+            end
           rescue Error::NoSuchObjectError
             raise RuntimeError, "Assertion. Parent entry is not found."
           end
@@ -257,7 +262,8 @@ module Mock
                 @attributes.delete(type)
               else
                 values.each do |v|
-                  @attributes[type].delete(v) ||(raise Error::NoSuchAttributeError, "Attribute #{type} doesn't have value #{v}.")
+                  @attributes[type].delete(v) ||
+                  (raise Error::NoSuchAttributeError, "Attribute #{type} doesn't have value #{v}.")
                 end
                 @attributes.delete(type) if @attributes[type].empty?
               end
@@ -340,7 +346,7 @@ module Mock
               raise Error::NoSuchObjectError, "Basedn doesn't exist." unless @@base
               entry = @@base.search(dn, :base_object)[0]
               raise Error::NotAllowedOnNonLeafError, "#{dn} is not a leaf entry." unless entry.leaf?
-              entry.parent.del_child(entry)
+              entry.delete
             }
           end
 
@@ -355,7 +361,8 @@ module Mock
           def parent
             parent_dn = @dn.split(',', 2)[1]
             raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found." unless parent_dn
-            @@base.search(parent_dn, :base_object)[0] || (raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found.")
+            @@base.search(parent_dn, :base_object)[0] ||
+              (raise Error::NoSuchObjectError, "Parent entry of #{@dn} is not found.")
           end
 
           def iter_search(relative_dns, scope)
@@ -380,19 +387,7 @@ module Mock
             end
           end
 
-          def add_child(child)
-            raise RuntimeError, "Assertion. The parent of #{child} is not this entry." unless equal?(child.parent)
-            raise Error::EntryAlreadyExistsError, "#{@dn} is already exists." if @children.has_key?(child.rdn)
-            @children[child.rdn] = child
-          end
-
-          def del_child(child)
-            raise RuntimeError, "Assertion. The parent of #{child} is not this entry." unless equal?(child.parent)
-            raise RuntimeError, "Assertion. Argument child is not a child of this entry." unless @children[child.rdn].equal?(child)
-            @children.delete(child.rdn)
-          end
-
-          protected :iter_search
+          protected :iter_search, :children
         end
 
 
