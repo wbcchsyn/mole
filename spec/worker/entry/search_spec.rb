@@ -1,13 +1,13 @@
 require 'openssl'
 
 require (File.dirname(__FILE__) + '/../../spec_helper')
-require 'mole/worker/response/entry'
+require 'mole/worker/entry'
 require 'mole/worker/error'
 
-describe "Mole::Worker::Response::Entry#search" do
+describe "Mole::Worker::Entry#search" do
 
   before :all do
-    @entry = Mole::Worker::Response::Entry
+    @entry = Mole::Worker::Entry
     @error = Mole::Worker::Error
   end
 

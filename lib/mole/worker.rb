@@ -1,6 +1,7 @@
 require 'mole/worker/response'
 require 'mole/worker/request'
 require 'mole/worker/tag'
+require 'mole/worker/entry'
 
 
 module Mole
@@ -49,7 +50,7 @@ module Mole
     end
 
     def clear
-      Response::Entry.clear
+      Entry.clear
     end
 
     module_function :handle, :clear

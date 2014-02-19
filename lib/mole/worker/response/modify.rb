@@ -1,5 +1,5 @@
 require 'mole/worker/response/abst_response'
-require 'mole/worker/response/Entry'
+require 'mole/worker/entry'
 
 module Mole
   module Worker
