@@ -46,8 +46,13 @@ module Mock
                 unless attr.length == 2
                   raise ArgumentError, "invalid number of elements. (#{attr.length} for 2)"
                 end
+
                 type = attr[0]
                 vals = attr[1]
+
+                unless vals..is_a?(Array)
+                  raise TypeError, "Each attribute vallues must be Array"
+                end
 
                 ret[type] = vals
               end

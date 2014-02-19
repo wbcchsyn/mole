@@ -18,8 +18,6 @@ module Mock
           def [](key)
             super || (raise Mock::Ldap::Worker::Error::KeyError)
           end
-
-          private :[]=
         end
 
         # See RFC4511 Appendix B.
@@ -76,8 +74,8 @@ module Mock
                                         :extensible_match => 9,).freeze
 
         ChangeOperation = ReversibleHash.new(:add => 0,
-                                              :delete => 1,
-                                              :replace => 2,).freeze
+                                             :delete => 1,
+                                             :replace => 2,).freeze
       end
     end
   end

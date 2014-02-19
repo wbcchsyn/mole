@@ -1,3 +1,5 @@
+require 'mock/ldap/worker/error'
+
 module Mock
   module Ldap
     module Worker
@@ -44,6 +46,14 @@ module Mock
           affectsMultipleDSAs: 71,
           other: 80,
         }
+
+        class << RESULT_CODE
+          def [](key)
+            super || (raise Mock::Ldap::Worker::Error::KeyError)
+          end
+        end
+
+        RESULT_CODE.freeze
 
       end
     end
