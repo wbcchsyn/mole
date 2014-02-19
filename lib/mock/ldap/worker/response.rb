@@ -1,8 +1,0 @@
-require 'mock/ldap/worker/response/bind'
-require 'mock/ldap/worker/response/search'
-require 'mock/ldap/worker/response/modify'
-require 'mock/ldap/worker/response/add'
-require 'mock/ldap/worker/response/del'
-require 'mock/ldap/worker/response/modify_dn'
-require 'mock/ldap/worker/response/compare'
-require 'mock/ldap/worker/response/extend'

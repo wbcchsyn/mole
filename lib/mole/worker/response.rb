@@ -1,0 +1,8 @@
+require 'mole/worker/response/bind'
+require 'mole/worker/response/search'
+require 'mole/worker/response/modify'
+require 'mole/worker/response/add'
+require 'mole/worker/response/del'
+require 'mole/worker/response/modify_dn'
+require 'mole/worker/response/compare'
+require 'mole/worker/response/extend'

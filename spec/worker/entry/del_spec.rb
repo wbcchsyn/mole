@@ -1,14 +1,14 @@
 require 'openssl'
 
 require (File.dirname(__FILE__) + '/../../spec_helper')
-require 'mock/ldap/worker/response/entry'
-require 'mock/ldap/worker/error'
+require 'mole/worker/response/entry'
+require 'mole/worker/error'
 
-describe "Mock::Ldap::Worker::Response::Entry#del" do
+describe "Mole::Worker::Response::Entry#del" do
 
   before :all do
-    @entry = Mock::Ldap::Worker::Response::Entry
-    @error = Mock::Ldap::Worker::Error
+    @entry = Mole::Worker::Response::Entry
+    @error = Mole::Worker::Error
   end
 
   before do

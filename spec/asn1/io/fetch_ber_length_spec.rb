@@ -1,12 +1,12 @@
 require (File.dirname(__FILE__) + '/../../spec_helper')
 require 'openssl'
 
-describe "Mock::Ldap::Asn1::IO#fetch_ber_length" do
+describe "Mole::Asn1::IO#fetch_ber_length" do
 
   before do
     @r, @w = IO.pipe
     class << @r
-      include Mock::Ldap::Asn1::IO
+      include Mole::Asn1::IO
     end
   end
 

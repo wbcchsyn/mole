@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+#-*- coding: utf-8 -*-
+
+$:.unshift(File.dirname(__FILE__) + '/lib')
+require 'mole'
+
+def main(args)
+  server = Mole::::Server.new(args)
+  server.listen(async=false)
+end
+
+if __FILE__ == $0
+  require 'optparse'
+
+  args = {}
+  optparser = OptionParser.new('Mole -- LDAP Mock Server') do |opt|
+    opt.on('--host HOST', 'Host to be listened. Default is 127.0.0.1.') do |host|
+      args[:host] = host
+    end
+    opt.on('--port PORT', 'Port to listen. Default is 3890.') do |port|
+      args[:port] = port.to_i
+    end
+    opt.on('--log FILE', 'Path to log file. Default is stdout') do |log|
+      args[:log] = log
+    end
+    opt.on('--level LEVEL', 'Log level. It must be debug or info or warn or error or fatal. Default is info') do |level|
+      args[:level] = level
+    end
+  end
+
+  begin
+    optparser.parse(ARGV)
+  rescue OptionParser::ParseError
+    $stderr.write("run '#{$0} --help' for help.\n")
+    exit(1)
+  end
+
+  main(args)
+end

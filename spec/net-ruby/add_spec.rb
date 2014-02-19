@@ -4,7 +4,7 @@ require 'net/ldap'
 describe "Net::LDAP#add" do
 
   before :all do
-    @server = Mock::Ldap::Server.new(level: 'error')
+    @server = Mole::Server.new(level: 'error')
     @t = @server.listen(async=true)
   end
 
