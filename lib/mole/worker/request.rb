@@ -1,6 +1,4 @@
-require 'openssl'
-
-require 'mole/worker/error'
+require 'mole/worker/request/common_parser'
 require 'mole/worker/request/bind'
 require 'mole/worker/request/unbind'
 require 'mole/worker/request/search'
@@ -11,28 +9,55 @@ require 'mole/worker/request/modify_dn'
 require 'mole/worker/request/compare'
 require 'mole/worker/request/abandon'
 require 'mole/worker/request/extend'
+require 'mole/worker/tag'
+
 
 module Mole
   module Worker
     module Request
-      extend Mole::Worker::Tag
-      extend Mole::Worker::Error
 
-      # See RFC4511 Section 4.1.1
-      def parse_ldap_message(pdu)
-        sanitize_length(pdu, 2, 'LDAPMessage')
 
-        contents = parse_sequence(pdu, 'LDAPMessage')
+      def parse(pdu)
+        CommonParser.sanitize_length(pdu, 2, 'LDAPMessage')
+        contents = CommonParser.parse_sequence(pdu, 'LDAPMessage')
 
-        message_id = parse_integer(contents[0], 'message_id of LDAPMessage')
+        message_id = CommonParser.parse_integer(contents[0], 'message_id of LDAPMessage')
 
-        sanitize_class(contents[1], :APPLICATION, 'protocolOp of LDAPMessage')
+        CommonParser.sanitize_class(contents[1], :APPLICATION, 'protocolOp of LDAPMessage')
         operation = contents[1]
 
-        [message_id, operation]
+        case Tag::Application[operation.tag]
+        when :BindRequest
+          Bind.new(message_id, operation)
+        when :UnbindRequest
+          Unbind.new(message_id, operation)
+        when :SearchRequest
+          Search.new(message_id, operation)
+        when :ModifyRequest
+          Modify.new(message_id, operation)
+        when :AddRequest
+          Add.new(message_id, operation)
+        when :DelRequest
+          Del.new(message_id, operation)
+        when :ModifyDNRequest
+          ModifyDN.new(message_id, operation)
+        when :CompareRequest
+          CompaireRequest.new(message_id, operation)
+        when :AbandonRequest
+          AbandonRequest.new(message_id, operation)
+        when :ExtendRequest
+          ExtendRequestRequest.new(message_id, operation)
+        else
+          raise Error::ProtocolError, "Receive unknown request tag."
+        end
+
       end
 
-      module_function :parse_ldap_message
+      module_function :parse
+
+
     end
+
+    private_constant :Request
   end
 end

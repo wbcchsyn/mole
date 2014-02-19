@@ -1,18 +1,17 @@
-require 'openssl'
-
 require 'mole/worker/error'
-require 'mole/worker/tag'
 require 'mole/worker/request/abst_request'
 require 'mole/worker/request/common_parser'
 
 module Mole
   module Worker
     module Request
-      extend Mole::Worker::Tag
-      extend Mole::Worker::Error
 
 
-      class ModifyDn < AbstRequest
+      class ModifyDn
+        extend Mole::Worker::Error
+
+        include AbstRequest
+
         def initialize(*args)
           @protocol = :ModifyDNRequest
           super
@@ -35,6 +34,8 @@ module Mole
         end
 
       end
+
+      private_constant :ModifyDn
 
 
     end

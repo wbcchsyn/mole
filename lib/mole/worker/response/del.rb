@@ -1,11 +1,13 @@
 require 'mole/worker/response/abst_response'
+require 'mole/worker/entry'
 
 module Mole
   module Worker
     module Response
 
 
-      class Del < AbstResponse
+      class Del
+        include AbstResponse
 
         def initialize(request)
           @protocol = :DelResponse
@@ -21,6 +23,8 @@ module Mole
         end
 
       end
+
+      private_constant :Del
 
 
     end

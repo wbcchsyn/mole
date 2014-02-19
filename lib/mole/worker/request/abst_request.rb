@@ -1,18 +1,19 @@
-require 'openssl'
-
 require 'mole/worker/error'
+require 'mole/worker/request/common_parser'
 
 module Mole
   module Worker
     module Request
-      extend Mole::Worker::Error
 
-      class AbstRequest
+
+      module AbstRequest
         def initialize(message_id, operation)
           @message_id = message_id
           @operation = operation
+
           parse_request
-        rescue Error::LdapError
+
+        rescue Mole::Worker::Error::LdapError
           @error = $!
         end
 
@@ -25,6 +26,7 @@ module Mole
         end
       end
 
+      private_constant :AbstRequest
 
     end
   end

@@ -5,7 +5,8 @@ module Mole
     module Response
 
 
-      class Bind < AbstResponse
+      class Bind
+        include AbstResponse
 
         def initialize(request)
           @protocol = :BindResponse
@@ -17,6 +18,8 @@ module Mole
         private
 
       end
+
+      private_constant :Bind
 
 
     end

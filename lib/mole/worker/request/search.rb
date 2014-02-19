@@ -1,5 +1,3 @@
-require 'openssl'
-
 require 'mole/worker/error'
 require 'mole/worker/tag'
 require 'mole/worker/request/common_parser'
@@ -8,11 +6,15 @@ require 'mole/worker/request/abst_request'
 module Mole
   module Worker
     module Request
-      extend Mole::Worker::Tag
-      extend Mole::Worker::Error
 
-      class Search < AbstRequest
-        def initialize(message_id, operation)
+
+      class Search
+        extend Mole::Worker::Tag
+        extend Mole::Worker::Error
+
+        include AbstRequest
+
+        def initialize(*args)
           @protocol = :SearchRequest
           super
         end
@@ -21,28 +23,28 @@ module Mole
 
         # Parse SearchRequest. See RFC4511 Section 4.5
         def parse_request
-          Request.sanitize_length(@operation, 8, 'SearchRequest')
+          CommonParser.sanitize_length(@operation, 8, 'SearchRequest')
 
-          @base_object = Request.parse_ldap_dn(@operation.value[0], 'baseObject of SearchRequest')
+          @base_object = CommonParser.parse_ldap_dn(@operation.value[0], 'baseObject of SearchRequest')
 
           begin
-            @scope = Tag::Scope[Request.parse_enumerated(@operation.value[1], 'scope of SearchRequest')]
+            @scope = Tag::Scope[CommonParser.parse_enumerated(@operation.value[1], 'scope of SearchRequest')]
           rescue Error::KeyError
             raise Error::ProtocolError, "Receive unknown SearchRequest scope."
           end
 
           begin
-            @deref_aliases = Tag::DerefAliases[Request.parse_enumerated(@operation.value[2], 'derefAliases of SearchRequest')]
+            @deref_aliases = Tag::DerefAliases[CommonParser.parse_enumerated(@operation.value[2], 'derefAliases of SearchRequest')]
           rescue Error::KeyError
             raise Error::ProtocolError, "Receive unknown SearchRequest derefAliases."
           end
 
-          @size_limit = Request.parse_integer(@operation.value[3], 'sizeLimit of SearchRequest')
-          @time_limit = Request.parse_integer(@operation.value[4], 'timeLimit of SearchRequest')
-          @types_only = Request.parse_boolean(@operation.value[5], 'typesOnly of SearchRequest')
+          @size_limit = CommonParser.parse_integer(@operation.value[3], 'sizeLimit of SearchRequest')
+          @time_limit = CommonParser.parse_integer(@operation.value[4], 'timeLimit of SearchRequest')
+          @types_only = CommonParser.parse_boolean(@operation.value[5], 'typesOnly of SearchRequest')
           @filter = parse_filter(@operation.value[6])
-          @attributes = Request.parse_sequence(@operation.value[7], 'attributes of SearchRequest').map do |attribute|
-            Request.parse_octet_string(attribute, 'Each SearchRequest attributes')
+          @attributes = CommonParser.parse_sequence(@operation.value[7], 'attributes of SearchRequest').map do |attribute|
+            CommonParser.parse_octet_string(attribute, 'Each SearchRequest attributes')
           end
         end
 
@@ -72,7 +74,7 @@ module Mole
 
         # Use to extract individial filter from and, or, not filter
         def parse_sub_filter(pdu)
-          Request.sanitize_constructed(pdu, "'and', 'or' and 'not' Filter")
+          CommonParser.sanitize_constructed(pdu, "'and', 'or' and 'not' Filter")
 
           pdu.value.map do |f|
             parse_filter(f)
@@ -80,19 +82,19 @@ module Mole
         end
 
         def parse_present_filter(pdu)
-          Request.sanitize_primitive(pdu, 'present Filter')
+          CommonParser.sanitize_primitive(pdu, 'present Filter')
           pdu.value
         end
 
         def parse_substring_filter(pdu)
-          Request.sanitize_constructed(pdu, 'SubstringFilter')
+          CommonParser.sanitize_constructed(pdu, 'SubstringFilter')
 
-          type = Request.sanitize_octet_string(pdu.value[0], 'type of SubstringFilter')
+          type = CommonParser.sanitize_octet_string(pdu.value[0], 'type of SubstringFilter')
 
           _initial = false
           _final = false
-          substrings = Request.parse_sequence(pdu, 'Each SubstringFilter').map do |s|
-            Request.sanitize_class(s, :CONTEXT_SPECIFIC, 'Each SubstringFilter substrings')
+          substrings = CommonParser.parse_sequence(pdu, 'Each SubstringFilter').map do |s|
+            CommonParser.sanitize_class(s, :CONTEXT_SPECIFIC, 'Each SubstringFilter substrings')
 
             case position = Tag::SubstringType[s.tag]
             when :initial
@@ -118,15 +120,17 @@ module Mole
         end
 
         def parse_attribute_value_assertion(pdu)
-          Request.sanitize_length(pdu, 2, 'AttributeValueAssertion type Filter')
+          CommonParser.sanitize_length(pdu, 2, 'AttributeValueAssertion type Filter')
 
           [
-            Request.parse_octet_string(pdu.value[0], 'type of Filter AttributeValueAssertion'),
-            Request.parse_octet_string(pdu.value[1], 'value of Filter AttributeValueAssertion')
+            CommonParser.parse_octet_string(pdu.value[0], 'type of Filter AttributeValueAssertion'),
+            CommonParser.parse_octet_string(pdu.value[1], 'value of Filter AttributeValueAssertion')
           ]
         end
 
       end
+
+      private_constant :Search
 
 
     end

@@ -5,7 +5,8 @@ module Mole
   module Worker
     module Response
 
-      class Add < AbstResponse
+      class Add
+        include AbstResponse
 
         def initialize(request)
           @protocol = :AddResponse
@@ -21,6 +22,8 @@ module Mole
         end
 
       end
+
+      private_constant :Add
 
 
     end

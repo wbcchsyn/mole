@@ -5,10 +5,11 @@ require 'mole/worker/tag'
 module Mole
   module Worker
     module Response
-      extend Mole::Worker::Tag
-      extend Mole::Worker::Error
 
-      class AbstResponse
+
+      module AbstResponse
+        extend Mole::Worker::Tag
+        extend Mole::Worker::Error
 
         def initialize(request)
           @message_id = request.message_id
@@ -60,6 +61,8 @@ module Mole
         end
 
       end
+
+      private_constant :AbstResponse
 
 
     end

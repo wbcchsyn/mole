@@ -5,7 +5,8 @@ module Mole
     module Response
 
 
-      class Compare < AbstResponse
+      class Compare
+        include AbstResponse
 
         def initialize(request)
           @protocol = :CompareRdnResponse
@@ -15,9 +16,9 @@ module Mole
           @result = :protocolError
         end
 
-        private
-
       end
+
+      private_constant :Compare
 
 
     end

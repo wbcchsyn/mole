@@ -1,11 +1,13 @@
 require 'mole/worker/response/abst_response'
+require 'mole/worker/entry'
 
 module Mole
   module Worker
     module Response
 
 
-      class ModifyDn < AbstResponse
+      class ModifyDn
+        include AbstResponse
 
         def initialize(request)
           @protocol = :ModifyDNResponse
@@ -30,6 +32,8 @@ module Mole
         end
 
       end
+
+      private_constant :ModifyDn
 
 
     end

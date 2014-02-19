@@ -5,7 +5,8 @@ module Mole
     module Response
 
 
-      class Extend < AbstResponse
+      class Extend
+        include AbstResponse
 
         def initialize(request)
           @protocol = :ExtendResponse
@@ -15,9 +16,9 @@ module Mole
           @result = :protocolError
         end
 
-        private
-
       end
+
+      private_constant :Extend
 
 
     end

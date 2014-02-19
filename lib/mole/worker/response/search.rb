@@ -6,7 +6,8 @@ module Mole
     module Response
 
 
-      class Search < AbstResponse
+      class Search
+        include AbstResponse
 
         def initialize(request)
           @protocol = :SearchResultDone
@@ -54,6 +55,8 @@ module Mole
         end
 
       end
+
+      private_constant :Search
 
 
     end

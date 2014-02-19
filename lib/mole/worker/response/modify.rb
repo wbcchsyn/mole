@@ -6,7 +6,8 @@ module Mole
     module Response
       extend Mole::Worker::Error
 
-      class Modify < AbstResponse
+      class Modify
+        include AbstResponse
 
         def initialize(request)
           @protocol = :ModifyResponse
@@ -22,6 +23,8 @@ module Mole
         end
 
       end
+
+      private_constant :Modify
 
 
     end
