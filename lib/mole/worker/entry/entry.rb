@@ -46,7 +46,7 @@ module Mole
           raise Error::EntryAlreadyExistsError, "#{@dn} is already exists." if parent.children.has_key?(rdn)
           parent.children[rdn] = self
         rescue Error::NoSuchObjectError
-          raise Error::UnwillingToPerformError, "Parent entry is not found."
+          raise Error::UnwillingToPerformError, $!.message
         end
 
         def delete
@@ -54,10 +54,10 @@ module Mole
             @@base = nil
           else
             parent.children.delete(rdn) ||
-              (raise RuntimeError, "Assertion. This instance is neither base dn nor child of another.")
+              (raise RuntimeError, "Assertion. #{self} is neither base dn nor child of another.")
           end
         rescue Error::NoSuchObjectError
-          raise RuntimeError, "Assertion. Parent entry is not found."
+          raise RuntimeError, "Assertion. Parent entry of #{self} is not found."
         end
 
         # modify its attribute.
@@ -73,7 +73,7 @@ module Mole
               @attributes[type] = values
             end
           when :delete
-            raise Error::NoSuchAttributeError, 'No such attribute is.' unless @attributes.has_key?(type)
+            raise Error::NoSuchAttributeError, 'No such attribute #{type} is.' unless @attributes.has_key?(type)
             if values.empty?
               @attributes.delete(type)
             else
@@ -94,7 +94,7 @@ module Mole
         end
 
         def search(dn, scope)
-          raise RuntimeError, 'Assertion. search method is called from not base dn.' unless base?
+          raise RuntimeError, 'Assertion. search method is called from not base dn but from #{self}.' unless base?
 
           if dn =~ /^#{@dn}$/i or dn =~ /,#{@dn}$/i
             # Search dn is equals or longer than base dn.
@@ -122,7 +122,7 @@ module Mole
             raise Error::NoSuchObjectError, "#{dn} doesn't match to base dn."
           end
 
-          raise Error::NoSuchObjectError, "No entry is hit." if ret.empty?
+          raise Error::NoSuchObjectError, "No entry is hit under #{dn}." if ret.empty?
           ret
         end
 
@@ -185,7 +185,7 @@ module Mole
             if @children.has_key?(next_dn)
               @children[next_dn].iter_search(relative_dns, scope)
             else
-              raise Error::NoSuchObjectError, "No entry is found."
+              raise Error::NoSuchObjectError, "#{next_dn},#{@dn} is not found."
             end
           end
         end
