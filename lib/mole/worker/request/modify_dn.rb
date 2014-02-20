@@ -22,14 +22,32 @@ module Mole
         private
 
         def parse_request
-          Request.sanitize_length(@operation, 4, 'ModifyDNRequest')
+          CommonParser.sanitize_constructed(@operation, 'ModifyDNRequest')
 
-          @entry = Request.parse_ldap_dn(@operation.value[0], 'entry of ModifyDNRequest')
-          @newrdn = Request.parse_ldap_dn(@operation.value[1], 'newrdn of ModifyDNRequest')
-          @deleteoldrdn = Request.parse_boolean(@operation.value[2], 'deleteoldrdn of ModifyDNRequest')
-          @new_superior = Request.parse_ldap_dn(@operation.value[3], 'entry of ModifyDNRequest')
+          # The operation length depends on whether optional parameter, 'newSuperior' is or not.
+          unless @operation.value.length == 3 or @operation.value.length == 4
+            message = "The length of ModifyDNRequest is requested to be 3 or 4."
+            raise Error::ProtocolError, message
+          end
+
+          @entry = CommonParser.parse_ldap_dn(@operation.value[0], 'entry of ModifyDNRequest')
+          if @entry.empty?
+            raise Error::ProtocolError, "entry of ModifyDNRequest must not empty."
+          end
+
+          @newrdn = CommonParser.parse_ldap_dn(@operation.value[1], 'newrdn of ModifyDNRequest')
           if @newrdn.empty?
             raise Error::ProtocolError, "newrdn of ModifyDNRequest must not empty."
+          end
+
+          @deleteoldrdn = CommonParser.parse_boolean(@operation.value[2], 'deleteoldrdn of ModifyDNRequest')
+
+          if @operation.value[3]
+            CommonParser.sanitize_class(@operation.value[3], :CONTEXT_SPECIFIC, 'newSuperior of ModifyDNRequest')
+            CommonParser.sanitize_primitive(@operation.value[3], 'newSuperior of ModifyDNRequest')
+            @new_superior = @operation.value[3].value
+          else
+            @new_superior = nil
           end
         end
 

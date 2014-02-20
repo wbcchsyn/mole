@@ -28,7 +28,7 @@ module Mole
         when :DelRequest
           Del.new(request)
         when :ModifyDNRequest
-          ModifyDN.new(request)
+          ModifyDn.new(request)
         when :CompareRequest
           Compaire.new(request)
         when :AbandonRequest

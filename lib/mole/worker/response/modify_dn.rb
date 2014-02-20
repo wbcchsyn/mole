@@ -11,11 +11,12 @@ module Mole
 
         def initialize(request)
           @protocol = :ModifyDNResponse
-          @matched_dn = @request.entry
+          @matched_dn = request.entry
+          @diagnostic_message = 'hoge'
           super
           # Create message
           if @result == :success
-            operation = @request.deleteolddn ? "Rename" : "Copy"
+            operation = @request.deleteoldrdn ? "Rename" : "Copy"
             to = @request.newrdn
             to = to + ',' + @request.newrdn unless @request.newrdn.empty?
             @diagnostic_message = "#{operation} #{@request.entry} to #{to}."
@@ -27,7 +28,7 @@ module Mole
         def execute
           Entry.modify_dn(@request.entry,
                           @request.newrdn,
-                          @request.deleteolddn,
+                          @request.deleteoldrdn,
                           @request.new_superior)
         end
 

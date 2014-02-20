@@ -73,7 +73,7 @@ module Mole
           # Make it a rule not to move Base DN following OpenLDAP.
           raise Error::UnwillingToPerformError, "#{old_dn} is Base DN." if old_entry.base?
 
-          new_parent_dn = old_entry.dn unless new_parent_dn
+          new_parent_dn = old_entry.parent.dn unless new_parent_dn
 
           old_entry.iter_copy("#{new_rdn},#{new_parent_dn}")
           old_entry.delete if delete_old

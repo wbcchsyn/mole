@@ -5,7 +5,7 @@ $:.unshift(File.dirname(__FILE__) + '/lib')
 require 'mole'
 
 def main(args)
-  server = Mole::::Server.new(args)
+  server = Mole::Server.new(args)
   server.listen(async=false)
 end
 

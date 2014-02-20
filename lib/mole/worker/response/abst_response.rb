@@ -22,7 +22,7 @@ module Mole
         rescue Error::LdapError
           @matched_dn = '' unless @matched_dn
           @result = ($!.code || :operationsError)
-          @diagnostic_messge = ($!.message || '')
+          @diagnostic_message = ($!.message || '')
         end
 
         def to_pdu

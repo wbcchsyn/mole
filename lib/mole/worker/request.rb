@@ -40,7 +40,7 @@ module Mole
         when :DelRequest
           Del.new(message_id, operation)
         when :ModifyDNRequest
-          ModifyDN.new(message_id, operation)
+          ModifyDn.new(message_id, operation)
         when :CompareRequest
           CompaireRequest.new(message_id, operation)
         when :AbandonRequest
